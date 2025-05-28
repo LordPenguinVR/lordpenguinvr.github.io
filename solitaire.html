@@ -2,19 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Klondike Solitaire</title>
   <style>
     :root {
-      --card-w: 120px;
-      --card-h: 168px;
+      --card-w: 80px;
+      --card-h: 112px;
     }
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+      touch-action: manipulation;
     }
     body {
       font-family: sans-serif;
@@ -24,23 +25,14 @@
       justify-content: center;
       align-items: center;
     }
-    .scale-wrapper {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: start;
-      overflow: hidden;
-    }
     .game-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 12px;
       padding: 10px;
-      width: 1200px;
-      height: 900px;
       transform-origin: top center;
+      scale: 1;
     }
     .buttons {
       display: flex;
@@ -63,12 +55,11 @@
     .board {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-width: 100%;
+      gap: 12px;
     }
     .row {
       display: flex;
-      gap: 10px;
+      gap: 6px;
       justify-content: center;
     }
     .pile, .stack {
@@ -81,7 +72,7 @@
       touch-action: none;
     }
     .stack {
-      min-height: 420px;
+      min-height: 400px;
     }
     .card {
       width: var(--card-w);
@@ -90,9 +81,8 @@
       border: 1px solid #888;
       position: absolute;
       background: white;
-      cursor: grab;
       touch-action: none;
-      transition: transform 0.2s ease, top 0.2s ease, left 0.2s ease;
+      transition: transform 0.2s ease;
     }
     .card.dragging {
       transform: scale(1.05);
@@ -106,38 +96,37 @@
       align-items: flex-start;
       justify-content: flex-start;
       padding: 4px;
-      font-size: 20px;
+      font-size: 16px;
       font-weight: bold;
     }
     .red {
       color: red;
     }
-    @media (max-width: 800px) {
-      .game-container {
-        transform: scale(0.5);
+    @media (max-width: 600px) {
+      :root {
+        --card-w: 60px;
+        --card-h: 84px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="scale-wrapper">
-    <div class="game-container">
-      <div class="buttons">
-        <button id="resetBtn">🔁 Reset</button>
-        <button id="autoBtn" disabled>🪄 Auto Complete</button>
+  <div class="game-container">
+    <div class="buttons">
+      <button id="resetBtn">🔁 Reset</button>
+      <button id="autoBtn" disabled>🪄 Auto Complete</button>
+    </div>
+    <div class="board">
+      <div class="row">
+        <div id="stock" class="pile"></div>
+        <div id="waste" class="pile"></div>
+        <div style="width: 10px;"></div>
+        <div id="foundation0" class="pile"></div>
+        <div id="foundation1" class="pile"></div>
+        <div id="foundation2" class="pile"></div>
+        <div id="foundation3" class="pile"></div>
       </div>
-      <div class="board">
-        <div class="row">
-          <div id="stock" class="pile"></div>
-          <div id="waste" class="pile"></div>
-          <div style="width: 20px;"></div>
-          <div id="foundation0" class="pile"></div>
-          <div id="foundation1" class="pile"></div>
-          <div id="foundation2" class="pile"></div>
-          <div id="foundation3" class="pile"></div>
-        </div>
-        <div class="row" id="tableau"></div>
-      </div>
+      <div class="row" id="tableau"></div>
     </div>
   </div>
 
@@ -189,12 +178,44 @@
       el.className=`card ${card.faceUp?'faceUp':'faceDown'} ${card.color}`;
       el.id=card.id;
       if(card.faceUp) el.textContent=card.value+card.suit;
-      el.draggable=card.faceUp;
-      el.ondragstart=e=>e.dataTransfer.setData('text', card.id);
-      el.ondragend = () => el.classList.remove('dragging');
-      el.addEventListener('touchstart', () => el.classList.add('dragging'));
-      el.addEventListener('touchend', () => el.classList.remove('dragging'));
+      el.addEventListener('pointerdown', pointerStart);
       return el;
+    }
+
+    function pointerStart(e) {
+      const el = e.currentTarget;
+      const id = el.id;
+      const card = findCard(id);
+      if (!card || !card.faceUp) return;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+
+      const from = findPile(card);
+      const originalX = e.clientX;
+      const originalY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      const offsetX = originalX - rect.left;
+      const offsetY = originalY - rect.top;
+
+      function move(ev) {
+        el.style.left = (ev.clientX - offsetX) + 'px';
+        el.style.top = (ev.clientY - offsetY) + 'px';
+      }
+
+      function end(ev) {
+        el.classList.remove('dragging');
+        el.style.left = '';
+        el.style.top = '';
+        el.releasePointerCapture(ev.pointerId);
+        draw(); // just redraw to snap into place
+        el.removeEventListener('pointermove', move);
+        el.removeEventListener('pointerup', end);
+        el.removeEventListener('pointercancel', end);
+      }
+
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointercancel', end);
     }
 
     function drawStock(){
@@ -218,11 +239,6 @@
       foundations.forEach((pile,i)=>{
         const el=document.getElementById('foundation'+i); el.innerHTML='';
         if(pile.length) el.appendChild(cardEl(pile[pile.length-1]));
-        el.ondragover=e=>e.preventDefault();
-        el.ondrop = e=>{
-          const c=findCard(e.dataTransfer.getData('text')), from=findPile(c), top=pile[pile.length-1];
-          if((!top&&c.value==='A')||(top&&top.suit===c.suit&&c.idx===top.idx+1)) moveCards(from,pile,c);
-        };
       });
     }
 
@@ -236,16 +252,6 @@
           y+=card.faceUp?30:8;
           stack.appendChild(el);
         });
-        stack.ondragover=e=>e.preventDefault();
-        stack.ondrop=e=>{
-          const c=findCard(e.dataTransfer.getData('text')), from=findPile(c), tgt=tableau[pi], top=tgt[tgt.length-1];
-          if((!tgt.length&&c.value==='K')||(top&&top.color!==c.color&&c.idx===top.idx-1)){
-            const start=from.indexOf(c), moving=from.splice(start);
-            tgt.push(...moving);
-            if(from.length && !from[from.length-1].faceUp) from[from.length-1].faceUp=true;
-            draw();
-          }
-        };
         board.appendChild(stack);
       });
     }
