@@ -2,38 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Klondike Solitaire</title>
   <style>
     :root {
-      --card-w: 100px;
-      --card-h: 140px;
+      --card-w: 120px;
+      --card-h: 168px;
     }
-    * {
-      box-sizing: border-box;
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
     }
     body {
-      margin: 0;
       font-family: sans-serif;
       background: green;
       user-select: none;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+    }
+    .scale-wrapper {
+      width: 100vw;
       height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      overflow: hidden;
     }
     .game-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
+      padding: 10px;
+      width: 1200px;
+      height: 900px;
+      transform-origin: top center;
     }
     .buttons {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     button {
       font-size: 16px;
-      padding: 6px 14px;
+      padding: 10px 16px;
       border-radius: 6px;
       border: none;
       cursor: pointer;
@@ -46,10 +63,8 @@
     .board {
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      padding: 20px;
-      max-width: 900px;
-      width: 100%;
+      gap: 16px;
+      max-width: 100%;
     }
     .row {
       display: flex;
@@ -63,6 +78,7 @@
       border: 2px dashed white;
       border-radius: 8px;
       position: relative;
+      touch-action: none;
     }
     .stack {
       min-height: 420px;
@@ -75,6 +91,12 @@
       position: absolute;
       background: white;
       cursor: grab;
+      touch-action: none;
+      transition: transform 0.2s ease, top 0.2s ease, left 0.2s ease;
+    }
+    .card.dragging {
+      transform: scale(1.05);
+      z-index: 1000;
     }
     .card.faceDown {
       background: navy;
@@ -90,30 +112,37 @@
     .red {
       color: red;
     }
+    @media (max-width: 800px) {
+      .game-container {
+        transform: scale(0.5);
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="game-container">
-    <div class="buttons">
-      <button id="resetBtn">🔁 Reset</button>
-      <button id="autoBtn" disabled>🪄 Auto Complete</button>
-    </div>
-    <div class="board">
-      <div class="row">
-        <div id="stock" class="pile"></div>
-        <div id="waste" class="pile"></div>
-        <div style="width: 120px;"></div>
-        <div id="foundation0" class="pile"></div>
-        <div id="foundation1" class="pile"></div>
-        <div id="foundation2" class="pile"></div>
-        <div id="foundation3" class="pile"></div>
+  <div class="scale-wrapper">
+    <div class="game-container">
+      <div class="buttons">
+        <button id="resetBtn">🔁 Reset</button>
+        <button id="autoBtn" disabled>🪄 Auto Complete</button>
       </div>
-      <div class="row" id="tableau"></div>
+      <div class="board">
+        <div class="row">
+          <div id="stock" class="pile"></div>
+          <div id="waste" class="pile"></div>
+          <div style="width: 20px;"></div>
+          <div id="foundation0" class="pile"></div>
+          <div id="foundation1" class="pile"></div>
+          <div id="foundation2" class="pile"></div>
+          <div id="foundation3" class="pile"></div>
+        </div>
+        <div class="row" id="tableau"></div>
+      </div>
     </div>
   </div>
 
   <script>
-    const suits  = ['♠','♥','♣','♦'];
+    const suits = ['♠', '♥', '♣', '♦'];
     const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
     let stock=[], waste=[], foundations=[[],[],[],[]], tableau=[[],[],[],[],[],[],[]];
 
@@ -131,8 +160,7 @@
     function newGame(){
       const deck=[];
       for(const s of suits) for(let i=0;i<values.length;i++)
-        deck.push({id:rndId(),suit:s,value:values[i],idx:i,
-                   color:(s==='♥'||s==='♦')?'red':'black',faceUp:false});
+        deck.push({id:rndId(),suit:s,value:values[i],idx:i,color:(s==='♥'||s==='♦')?'red':'black',faceUp:false});
       deck.sort(()=>Math.random()-0.5);
       tableau.forEach((col,i)=>{
         tableau[i]=[];
@@ -162,7 +190,10 @@
       el.id=card.id;
       if(card.faceUp) el.textContent=card.value+card.suit;
       el.draggable=card.faceUp;
-      el.ondragstart=e=>e.dataTransfer.setData('text',card.id);
+      el.ondragstart=e=>e.dataTransfer.setData('text', card.id);
+      el.ondragend = () => el.classList.remove('dragging');
+      el.addEventListener('touchstart', () => el.classList.add('dragging'));
+      el.addEventListener('touchend', () => el.classList.remove('dragging'));
       return el;
     }
 
