@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WeatherGotchi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      margin: 0;
+      padding: 1em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    #avatar {
+      font-size: 64px;
+      margin: 1em 0 0.2em;
+    }
+    #weatherDesc {
+      font-size: 0.9em;
+      margin-bottom: 0.2em;
+    }
+    #outfit {
+      font-size: 0.9em;
+      color: #0ff;
+      margin-bottom: 1em;
+    }
+    #speech {
+      font-size: 1em;
+      margin-bottom: 0.5em;
+      font-style: italic;
+      color: #ccc;
+    }
+    #location {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 0.5em;
+    }
+        .controls {
+      margin-top: 1em;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+    input[type="text"] {
+      font-family: monospace;
+      font-size: 1em;
+      padding: 4px;
+      width: 200px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      text-align: center;
+    }
+    button {
+      font-family: monospace;
+      font-size: 0.9em;
+      padding: 4px 10px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="location">📍 Loading...</div>
+  <div id="avatar">🕳️</div>
+  <div id="weatherDesc">Loading description...</div>
+  <div id="outfit">🧥 Loading outfit...</div>
+  <div id="speech">⌛</div>
+    <div class="controls">
+    <input id="cityInput" type="text" placeholder="Enter city name" />
+    <button onclick="fetchWeatherByCity()">🔍 Get Weather</button>
+  </div>
+
+  <script>
+    const avatarEl = document.getElementById("avatar");
+    const speechEl = document.getElementById("speech");
+    const locationEl = document.getElementById("location");
+    const cityInput = document.getElementById("cityInput");
+    const weatherDescEl = document.getElementById("weatherDesc");
+    const outfitEl = document.getElementById("outfit");
+    
+    let currentTemp = null;
+    let currentTimezone = "UTC";
+
+    function getEmoji(temp, code) {
+      const map = {
+        0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️",
+        51: "🌦️", 53: "🌦️", 55: "🌦️", 56: "🌦️", 57: "🌦️",
+        61: "🌧️", 63: "🌧️", 65: "🌧️", 66: "🌧️", 67: "🌧️",
+        71: "❄️", 73: "❄️", 75: "❄️", 77: "❄️", 80: "🌦️",
+        81: "🌦️", 82: "🌧️", 85: "🌨️", 86: "🌨️", 95: "⛈️",
+        96: "⛈️", 99: "⛈️"
+      };
+      if (map[code]) return map[code];
+      if (temp < 0) return "🥶";
+      if (temp < 10) return "🧥";
+      if (temp < 20) return "🙂";
+      if (temp < 30) return "😎";
+      return "🔥";
+    }
+
+    function getWeatherDescription(code) {
+      const descriptions = {
+        0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+        45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Moderate drizzle",
+        55: "Dense drizzle", 56: "Freezing drizzle", 57: "Heavy freezing drizzle",
+        61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain", 66: "Freezing rain",
+        67: "Heavy freezing rain", 71: "Slight snow", 73: "Moderate snow",
+        75: "Heavy snow", 77: "Snow grains", 80: "Light showers", 81: "Moderate showers",
+        82: "Heavy showers", 85: "Light snow showers", 86: "Heavy snow showers",
+        95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm"
+      };
+      return descriptions[code] || "Unknown weather";
+    }
+
+    function getTimeEmoji(hour) {
+      if (hour >= 5 && hour <= 7) return "🌅";
+      if (hour >= 8 && hour <= 11) return "☀️";
+      if (hour >= 12 && hour <= 16) return "🌤️";
+      if (hour >= 17 && hour <= 19) return "🌇";
+      if (hour >= 20 && hour <= 22) return "🌙";
+      return "🛌";
+    }
+
+    function updateClock() {
+      if (!currentTimezone || currentTemp === null) return;
+      const now = new Date();
+      const localTime = new Intl.DateTimeFormat('default', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: currentTimezone, hour12: false
+      }).format(now);
+      const hour = parseInt(new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit', timeZone: currentTimezone, hour12: false
+      }).format(now), 10);
+      const timeEmoji = getTimeEmoji(hour);
+      const date = new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric', timeZone: currentTimezone
+      }).format(now);
+      const weekday = new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long', timeZone: currentTimezone
+      }).format(now);
+      const dateEmoji = "📅";
+      const tempF = (currentTemp * 9 / 5 + 32).toFixed(1);
+      speechEl.innerHTML = `💬 ${currentTemp}°C / ${tempF}°F ${timeEmoji} ${localTime}<br>${dateEmoji} ${weekday}, ${date}`;
+    }
+
+    setInterval(updateClock, 1000);
+
+    async function fetchWeatherByCity() {
+      const city = cityInput.value.trim();
+      if (!city) return;
+      try {
+        locationEl.textContent = `📍 Locating "${city}"...`;
+        avatarEl.textContent = "🔄";
+        speechEl.textContent = "Loading...";
+                currentTemp = null;
+
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+        const geoData = await geoRes.json();
+        if (!geoData.results || geoData.results.length === 0) throw new Error("City not found");
+
+        const place = geoData.results[0];
+        const lat = place.latitude;
+        const lon = place.longitude;
+        const placeName = `${place.name}, ${place.country}`;
+        currentTimezone = place.timezone;
+
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,weathercode&timezone=${currentTimezone}`);
+        const weatherData = await weatherRes.json();
+
+        currentTemp = weatherData.current_weather.temperature;
+        const code = weatherData.current_weather.weathercode;
+        avatarEl.textContent = getEmoji(currentTemp, code);
+        weatherDescEl.textContent = getWeatherDescription(code);
+        weatherDescEl.style.color = [95, 96, 99].includes(code) ? "#f00" :
+                                    [61, 63, 65, 66, 67, 82].includes(code) ? "#ff0" : "#0f0";
+
+        outfitEl.textContent = (code >= 71 && code <= 77 || code === 85 || code === 86) ? "🧣 Wear warm clothes (snow)" :
+                               (code >= 61 && code <= 67 || code >= 80 && code <= 82) ? "🧥 Bring a raincoat!" :
+                               (code >= 95) ? "⚡ Stay indoors if possible" :
+                               (currentTemp < 5) ? "🧤 Bundle up, it's cold" :
+                               (currentTemp > 25) ? "🩳 Light clothes recommended" : "👕 Casual outfit is fine";
+
+        locationEl.textContent = `📍 ${placeName}`;
+        updateClock();
+
+        const now = new Date();
+        const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours());
+        
+      } catch (err) {
+        avatarEl.textContent = "❓";
+        weatherDescEl.textContent = "Unknown";
+        outfitEl.textContent = "";
+        speechEl.textContent = "Couldn't get data.";
+        locationEl.textContent = "⚠️ Error fetching location.";
+        console.error(err);
+      }
+    }
+
+    cityInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") fetchWeatherByCity();
+    });
+
+    cityInput.value = "Jönköping";
+    fetchWeatherByCity();
+  </script>
+</body>
+</html>
