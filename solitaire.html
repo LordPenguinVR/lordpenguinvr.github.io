@@ -75,30 +75,36 @@
       min-height: 400px;
     }
     .card {
-      width: var(--card-w);
-      height: var(--card-h);
-      border-radius: 8px;
-      border: 1px solid #888;
-      position: absolute;
-      background-color: white;
-      color: black;
-      touch-action: none;
-      transition: transform 0.2s ease;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      padding: 4px;
-      font-size: 16px;
-      font-weight: bold;
-    }
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: 8px;
+  border: 1px solid #888;
+  position: absolute;
+  background-color: white;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 4px;
+  touch-action: none;
+}
+
+.card.faceUp {
+  color: black;
+}
+
+.card.red.faceUp {
+  color: red;
+}
     .card.dragging {
       transform: scale(1.05);
       z-index: 1000;
       box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
     .card.faceDown {
-      background-color: navy;
-      color: white;
+      background-color: navy !important;
+      color: white !important;
     }
     .red {
       color: red;
@@ -112,33 +118,32 @@
   </style>
 </head>
 <body>
-  <div class="game-container">
-    <div class="buttons">
-      <button id="resetBtn">🔁 Reset</button>
-      <button id="autoBtn" disabled>🪄 Auto Complete</button>
-    </div>
-    <div class="board">
-      <div class="row">
-        <div id="stock" class="pile"></div>
-        <div id="waste" class="pile"></div>
-        <div style="width: 10px;"></div>
-        <div id="foundation0" class="pile"></div>
-        <div id="foundation1" class="pile"></div>
-        <div id="foundation2" class="pile"></div>
-        <div id="foundation3" class="pile"></div>
-      </div>
-      <div class="row" id="tableau"></div>
-    </div>
+<div class="game-container">
+  <div class="buttons">
+    <button id="resetBtn">🔁 Reset</button>
+    <button id="autoBtn" disabled>🪄 Auto Complete</button>
   </div>
-
-  <script>
-    const suits = ['♠', '♥', '♣', '♦'];
+  <div class="board">
+    <div class="row">
+      <div id="stock" class="pile"></div>
+      <div id="waste" class="pile"></div>
+      <div style="width: 10px;"></div>
+      <div id="foundation0" class="pile"></div>
+      <div id="foundation1" class="pile"></div>
+      <div id="foundation2" class="pile"></div>
+      <div id="foundation3" class="pile"></div>
+    </div>
+    <div class="row" id="tableau"></div>
+  </div>
+</div>
+<script>
+// Full game logic JS
+const suits = ['♠', '♥', '♣', '♦'];
 const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 let stock=[], waste=[], foundations=[[],[],[],[]], tableau=[[],[],[],[],[],[],[]];
 
 const resetBtn = document.getElementById("resetBtn");
 const autoBtn = document.getElementById("autoBtn");
-
 resetBtn.onclick = () => newGame();
 autoBtn.onclick = () => autoComplete();
 
@@ -165,18 +170,17 @@ function newGame(){
 }
 
 function draw(){
-  drawStock(); drawWaste(); drawFoundations(); drawTableau(); checkWin();
-  updateButtons();
+  drawStock(); drawWaste(); drawFoundations(); drawTableau(); checkWin(); updateButtons();
 }
 
 function updateButtons() {
-  const allFaceUp = tableau.every(col => col.every(card => card.faceUp));
-  autoBtn.disabled = !allFaceUp;
+  autoBtn.disabled = !tableau.every(col => col.every(card => card.faceUp));
 }
 
 function cardEl(card){
   const el=document.createElement('div');
-  el.className=`card ${card.faceUp?'faceUp':'faceDown'} ${card.color}`;
+  el.className = `card ${card.faceUp ? 'faceUp' : 'faceDown'} ${card.color}`;
+  if (card.color === 'red') el.classList.add('red');
   el.id=card.id;
   if(card.faceUp) el.textContent=card.value+card.suit;
   el.addEventListener('pointerdown', pointerStart);
@@ -187,10 +191,8 @@ let dragData = null;
 
 function pointerStart(e) {
   const el = e.currentTarget;
-  const id = el.id;
-  const card = findCard(id);
+  const card = findCard(el.id);
   if (!card || !card.faceUp) return;
-
   const fromPile = findPile(card);
   const startIndex = fromPile.indexOf(card);
   const movingCards = fromPile.slice(startIndex);
@@ -198,6 +200,7 @@ function pointerStart(e) {
 
   el.setPointerCapture(e.pointerId);
   el.classList.add('dragging');
+liftSound.currentTime = 0; liftSound.play();
 
   const rect = el.getBoundingClientRect();
   const offsetX = e.clientX - rect.left;
@@ -219,14 +222,12 @@ function pointerStart(e) {
     const dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
     if (dropTarget) {
       const dropPile = findDropPile(dropTarget);
-      if (dropPile) {
-        tryMove(dragData.card, dragData.fromPile, dropPile);
-      }
+      if (dropPile) tryMove(dragData.card, dragData.fromPile, dropPile);
     }
 
+    dropSound.currentTime = 0; dropSound.play();
     dragData = null;
     draw();
-
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', end);
     el.removeEventListener('pointercancel', end);
@@ -244,8 +245,8 @@ function findDropPile(target) {
       if (id.startsWith('foundation')) return foundations[+id.replace('foundation', '')];
       if (id === 'waste') return waste;
       if (id === 'stock') return stock;
-      const tableauIndex = [...document.getElementById('tableau').children].indexOf(target);
-      if (tableauIndex >= 0) return tableau[tableauIndex];
+      const index = [...document.getElementById('tableau').children].indexOf(target);
+      if (index >= 0) return tableau[index];
     }
     target = target.parentElement;
   }
@@ -292,7 +293,7 @@ function drawFoundations(){
 
 function drawTableau(){
   const board=document.getElementById('tableau'); board.innerHTML='';
-  tableau.forEach((pile,pi)=>{
+  tableau.forEach((pile)=>{
     const stack=document.createElement('div'); stack.className='stack';
     let y=0;
     pile.forEach(card=>{
@@ -341,6 +342,7 @@ function checkWin(){
   if(foundations.every(f=>f.length===13)) setTimeout(()=>alert("🎉 Du vann!"),300);
 }
 
-newGame();</script>
-</body>
-</html>
+newGame();
+const liftSound = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YYYAAAD///8AAP//AAD///8AAP//AAD///8AAP//AAD///8AAP//AAD///8AAP//AAD//wAA');
+const dropSound = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YYYAAAD///8AAP//AAD///8AAP//AAD///8AAP//AAD///8AAP//AAD///8AAP//AAD//wAA');
+</script>
