@@ -32,7 +32,6 @@
       gap: 12px;
       padding: 10px;
       transform-origin: top center;
-      scale: 1;
     }
     .buttons {
       display: flex;
@@ -81,15 +80,18 @@
       border: 1px solid #888;
       position: absolute;
       background: white;
+      color: black;
       touch-action: none;
       transition: transform 0.2s ease;
     }
     .card.dragging {
       transform: scale(1.05);
       z-index: 1000;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
     .card.faceDown {
       background: navy;
+      color: white;
     }
     .card.faceUp {
       display: flex;
@@ -182,32 +184,50 @@
       return el;
     }
 
+    let dragData = null;
+
     function pointerStart(e) {
       const el = e.currentTarget;
       const id = el.id;
       const card = findCard(id);
       if (!card || !card.faceUp) return;
+
+      const fromPile = findPile(card);
+      const startIndex = fromPile.indexOf(card);
+      const movingCards = fromPile.slice(startIndex);
+      dragData = { el, card, fromPile, movingCards };
+
       el.setPointerCapture(e.pointerId);
       el.classList.add('dragging');
 
-      const from = findPile(card);
-      const originalX = e.clientX;
-      const originalY = e.clientY;
       const rect = el.getBoundingClientRect();
-      const offsetX = originalX - rect.left;
-      const offsetY = originalY - rect.top;
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
 
       function move(ev) {
-        el.style.left = (ev.clientX - offsetX) + 'px';
-        el.style.top = (ev.clientY - offsetY) + 'px';
+        dragData.el.style.left = (ev.clientX - offsetX) + 'px';
+        dragData.el.style.top = (ev.clientY - offsetY) + 'px';
+        dragData.el.style.position = 'fixed';
       }
 
       function end(ev) {
         el.classList.remove('dragging');
-        el.style.left = '';
-        el.style.top = '';
+        dragData.el.style.left = '';
+        dragData.el.style.top = '';
+        dragData.el.style.position = '';
         el.releasePointerCapture(ev.pointerId);
-        draw(); // just redraw to snap into place
+
+        const dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (dropTarget) {
+          const dropPile = findDropPile(dropTarget);
+          if (dropPile) {
+            tryMove(dragData.card, dragData.fromPile, dropPile);
+          }
+        }
+
+        dragData = null;
+        draw();
+
         el.removeEventListener('pointermove', move);
         el.removeEventListener('pointerup', end);
         el.removeEventListener('pointercancel', end);
@@ -216,6 +236,35 @@
       el.addEventListener('pointermove', move);
       el.addEventListener('pointerup', end);
       el.addEventListener('pointercancel', end);
+    }
+
+    function findDropPile(target) {
+      while (target && target !== document.body) {
+        if (target.classList.contains('pile') || target.classList.contains('stack')) {
+          const id = target.id;
+          if (id.startsWith('foundation')) return foundations[+id.replace('foundation', '')];
+          if (id === 'waste') return waste;
+          if (id === 'stock') return stock;
+          const tableauIndex = [...document.getElementById('tableau').children].indexOf(target);
+          if (tableauIndex >= 0) return tableau[tableauIndex];
+        }
+        target = target.parentElement;
+      }
+      return null;
+    }
+
+    function tryMove(card, from, to) {
+      if (tableau.includes(to)) {
+        const top = to[to.length - 1];
+        if ((!to.length && card.value === 'K') || (top && top.color !== card.color && card.idx === top.idx - 1)) {
+          moveCards(from, to, card);
+        }
+      } else if (foundations.includes(to)) {
+        const top = to[to.length - 1];
+        if ((!top && card.value === 'A') || (top && top.suit === card.suit && card.idx === top.idx + 1)) {
+          moveCards(from, to, card);
+        }
+      }
     }
 
     function drawStock(){
