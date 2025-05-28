@@ -16,14 +16,15 @@
       height: 100%;
       overflow: hidden;
       touch-action: manipulation;
+      background: green;
     }
     body {
       font-family: sans-serif;
-      background: green;
       user-select: none;
       display: flex;
       justify-content: center;
       align-items: center;
+      color: black;
     }
     .game-container {
       display: flex;
@@ -79,10 +80,16 @@
       border-radius: 8px;
       border: 1px solid #888;
       position: absolute;
-      background: white;
+      background-color: white;
       color: black;
       touch-action: none;
       transition: transform 0.2s ease;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 4px;
+      font-size: 16px;
+      font-weight: bold;
     }
     .card.dragging {
       transform: scale(1.05);
@@ -90,16 +97,8 @@
       box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
     .card.faceDown {
-      background: navy;
+      background-color: navy;
       color: white;
-    }
-    .card.faceUp {
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      padding: 4px;
-      font-size: 16px;
-      font-weight: bold;
     }
     .red {
       color: red;
@@ -134,215 +133,214 @@
 
   <script>
     const suits = ['♠', '♥', '♣', '♦'];
-    const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-    let stock=[], waste=[], foundations=[[],[],[],[]], tableau=[[],[],[],[],[],[],[]];
+const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let stock=[], waste=[], foundations=[[],[],[],[]], tableau=[[],[],[],[],[],[],[]];
 
-    const resetBtn = document.getElementById("resetBtn");
-    const autoBtn = document.getElementById("autoBtn");
+const resetBtn = document.getElementById("resetBtn");
+const autoBtn = document.getElementById("autoBtn");
 
-    resetBtn.onclick = () => newGame();
-    autoBtn.onclick = () => autoComplete();
+resetBtn.onclick = () => newGame();
+autoBtn.onclick = () => autoComplete();
 
-    const rndId = () => Math.random().toString(36).slice(2,9);
-    const allCards = () => [...stock,...waste,...foundations.flat(),...tableau.flat()];
-    const findCard = id => allCards().find(c=>c.id===id);
-    const findPile = c => waste.includes(c)?waste : foundations.find(f=>f.includes(c))||tableau.find(t=>t.includes(c));
+const rndId = () => Math.random().toString(36).slice(2,9);
+const allCards = () => [...stock,...waste,...foundations.flat(),...tableau.flat()];
+const findCard = id => allCards().find(c=>c.id===id);
+const findPile = c => waste.includes(c)?waste : foundations.find(f=>f.includes(c))||tableau.find(t=>t.includes(c));
 
-    function newGame(){
-      const deck=[];
-      for(const s of suits) for(let i=0;i<values.length;i++)
-        deck.push({id:rndId(),suit:s,value:values[i],idx:i,color:(s==='♥'||s==='♦')?'red':'black',faceUp:false});
-      deck.sort(()=>Math.random()-0.5);
-      tableau.forEach((col,i)=>{
-        tableau[i]=[];
-        for(let j=0;j<=i;j++){
-          const c=deck.pop();
-          c.faceUp=j===i;
-          tableau[i].push(c);
-        }
-      });
-      stock=deck; waste.length=0; foundations.forEach(f=>f.length=0);
-      draw();
+function newGame(){
+  const deck=[];
+  for(const s of suits) for(let i=0;i<values.length;i++)
+    deck.push({id:rndId(),suit:s,value:values[i],idx:i,color:(s==='♥'||s==='♦')?'red':'black',faceUp:false});
+  deck.sort(()=>Math.random()-0.5);
+  tableau.forEach((col,i)=>{
+    tableau[i]=[];
+    for(let j=0;j<=i;j++){
+      const c=deck.pop();
+      c.faceUp=j===i;
+      tableau[i].push(c);
     }
+  });
+  stock=deck; waste.length=0; foundations.forEach(f=>f.length=0);
+  draw();
+}
 
-    function draw(){
-      drawStock(); drawWaste(); drawFoundations(); drawTableau(); checkWin();
-      updateButtons();
-    }
+function draw(){
+  drawStock(); drawWaste(); drawFoundations(); drawTableau(); checkWin();
+  updateButtons();
+}
 
-    function updateButtons() {
-      const allFaceUp = tableau.every(col => col.every(card => card.faceUp));
-      autoBtn.disabled = !allFaceUp;
-    }
+function updateButtons() {
+  const allFaceUp = tableau.every(col => col.every(card => card.faceUp));
+  autoBtn.disabled = !allFaceUp;
+}
 
-    function cardEl(card){
-      const el=document.createElement('div');
-      el.className=`card ${card.faceUp?'faceUp':'faceDown'} ${card.color}`;
-      el.id=card.id;
-      if(card.faceUp) el.textContent=card.value+card.suit;
-      el.addEventListener('pointerdown', pointerStart);
-      return el;
-    }
+function cardEl(card){
+  const el=document.createElement('div');
+  el.className=`card ${card.faceUp?'faceUp':'faceDown'} ${card.color}`;
+  el.id=card.id;
+  if(card.faceUp) el.textContent=card.value+card.suit;
+  el.addEventListener('pointerdown', pointerStart);
+  return el;
+}
 
-    let dragData = null;
+let dragData = null;
 
-    function pointerStart(e) {
-      const el = e.currentTarget;
-      const id = el.id;
-      const card = findCard(id);
-      if (!card || !card.faceUp) return;
+function pointerStart(e) {
+  const el = e.currentTarget;
+  const id = el.id;
+  const card = findCard(id);
+  if (!card || !card.faceUp) return;
 
-      const fromPile = findPile(card);
-      const startIndex = fromPile.indexOf(card);
-      const movingCards = fromPile.slice(startIndex);
-      dragData = { el, card, fromPile, movingCards };
+  const fromPile = findPile(card);
+  const startIndex = fromPile.indexOf(card);
+  const movingCards = fromPile.slice(startIndex);
+  dragData = { el, card, fromPile, movingCards };
 
-      el.setPointerCapture(e.pointerId);
-      el.classList.add('dragging');
+  el.setPointerCapture(e.pointerId);
+  el.classList.add('dragging');
 
-      const rect = el.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left;
-      const offsetY = e.clientY - rect.top;
+  const rect = el.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const offsetY = e.clientY - rect.top;
 
-      function move(ev) {
-        dragData.el.style.left = (ev.clientX - offsetX) + 'px';
-        dragData.el.style.top = (ev.clientY - offsetY) + 'px';
-        dragData.el.style.position = 'fixed';
+  function move(ev) {
+    dragData.el.style.left = (ev.clientX - offsetX) + 'px';
+    dragData.el.style.top = (ev.clientY - offsetY) + 'px';
+    dragData.el.style.position = 'fixed';
+  }
+
+  function end(ev) {
+    el.classList.remove('dragging');
+    dragData.el.style.left = '';
+    dragData.el.style.top = '';
+    dragData.el.style.position = '';
+    el.releasePointerCapture(ev.pointerId);
+
+    const dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (dropTarget) {
+      const dropPile = findDropPile(dropTarget);
+      if (dropPile) {
+        tryMove(dragData.card, dragData.fromPile, dropPile);
       }
-
-      function end(ev) {
-        el.classList.remove('dragging');
-        dragData.el.style.left = '';
-        dragData.el.style.top = '';
-        dragData.el.style.position = '';
-        el.releasePointerCapture(ev.pointerId);
-
-        const dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
-        if (dropTarget) {
-          const dropPile = findDropPile(dropTarget);
-          if (dropPile) {
-            tryMove(dragData.card, dragData.fromPile, dropPile);
-          }
-        }
-
-        dragData = null;
-        draw();
-
-        el.removeEventListener('pointermove', move);
-        el.removeEventListener('pointerup', end);
-        el.removeEventListener('pointercancel', end);
-      }
-
-      el.addEventListener('pointermove', move);
-      el.addEventListener('pointerup', end);
-      el.addEventListener('pointercancel', end);
     }
 
-    function findDropPile(target) {
-      while (target && target !== document.body) {
-        if (target.classList.contains('pile') || target.classList.contains('stack')) {
-          const id = target.id;
-          if (id.startsWith('foundation')) return foundations[+id.replace('foundation', '')];
-          if (id === 'waste') return waste;
-          if (id === 'stock') return stock;
-          const tableauIndex = [...document.getElementById('tableau').children].indexOf(target);
-          if (tableauIndex >= 0) return tableau[tableauIndex];
-        }
-        target = target.parentElement;
-      }
-      return null;
-    }
+    dragData = null;
+    draw();
 
-    function tryMove(card, from, to) {
-      if (tableau.includes(to)) {
-        const top = to[to.length - 1];
-        if ((!to.length && card.value === 'K') || (top && top.color !== card.color && card.idx === top.idx - 1)) {
-          moveCards(from, to, card);
-        }
-      } else if (foundations.includes(to)) {
-        const top = to[to.length - 1];
+    el.removeEventListener('pointermove', move);
+    el.removeEventListener('pointerup', end);
+    el.removeEventListener('pointercancel', end);
+  }
+
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+}
+
+function findDropPile(target) {
+  while (target && target !== document.body) {
+    if (target.classList.contains('pile') || target.classList.contains('stack')) {
+      const id = target.id;
+      if (id.startsWith('foundation')) return foundations[+id.replace('foundation', '')];
+      if (id === 'waste') return waste;
+      if (id === 'stock') return stock;
+      const tableauIndex = [...document.getElementById('tableau').children].indexOf(target);
+      if (tableauIndex >= 0) return tableau[tableauIndex];
+    }
+    target = target.parentElement;
+  }
+  return null;
+}
+
+function tryMove(card, from, to) {
+  if (tableau.includes(to)) {
+    const top = to[to.length - 1];
+    if ((!to.length && card.value === 'K') || (top && top.color !== card.color && card.idx === top.idx - 1)) {
+      moveCards(from, to, card);
+    }
+  } else if (foundations.includes(to)) {
+    const top = to[to.length - 1];
+    if ((!top && card.value === 'A') || (top && top.suit === card.suit && card.idx === top.idx + 1)) {
+      moveCards(from, to, card);
+    }
+  }
+}
+
+function drawStock(){
+  const el=document.getElementById('stock'); el.innerHTML='';
+  const stub=document.createElement('div'); stub.className='card faceDown';
+  if(stock.length){
+    stub.onclick=()=>{ const c=stock.pop(); c.faceUp=true; waste.push(c); draw();};
+  }else{
+    stub.style.background='transparent';
+    stub.onclick=()=>{ stock=waste.reverse().map(c=>(c.faceUp=false,c)); waste.length=0; draw();};
+  }
+  el.appendChild(stub);
+}
+
+function drawWaste(){
+  const el=document.getElementById('waste'); el.innerHTML='';
+  if(waste.length) el.appendChild(cardEl(waste[waste.length-1]));
+}
+
+function drawFoundations(){
+  foundations.forEach((pile,i)=>{
+    const el=document.getElementById('foundation'+i); el.innerHTML='';
+    if(pile.length) el.appendChild(cardEl(pile[pile.length-1]));
+  });
+}
+
+function drawTableau(){
+  const board=document.getElementById('tableau'); board.innerHTML='';
+  tableau.forEach((pile,pi)=>{
+    const stack=document.createElement('div'); stack.className='stack';
+    let y=0;
+    pile.forEach(card=>{
+      const el=cardEl(card); el.style.top=y+'px';
+      y+=card.faceUp?30:8;
+      stack.appendChild(el);
+    });
+    board.appendChild(stack);
+  });
+}
+
+function moveCards(from,to,card){
+  const idx = from.indexOf(card);
+  const moving = from.splice(idx);
+  to.push(...moving);
+  const last = from[from.length - 1];
+  if (last && !last.faceUp) last.faceUp = true;
+  draw();
+}
+
+function autoComplete(){
+  let moved;
+  do {
+    moved = false;
+    const piles = [...tableau, waste];
+    for (const pile of piles) {
+      const card = pile[pile.length - 1];
+      if (!card || !card.faceUp) continue;
+      for (const foundation of foundations) {
+        const top = foundation[foundation.length - 1];
         if ((!top && card.value === 'A') || (top && top.suit === card.suit && card.idx === top.idx + 1)) {
-          moveCards(from, to, card);
+          pile.pop();
+          foundation.push(card);
+          const last = pile[pile.length - 1];
+          if (last && !last.faceUp) last.faceUp = true;
+          moved = true;
+          break;
         }
       }
     }
+  } while (moved);
+  draw();
+}
 
-    function drawStock(){
-      const el=document.getElementById('stock'); el.innerHTML='';
-      const stub=document.createElement('div'); stub.className='card faceDown';
-      if(stock.length){
-        stub.onclick=()=>{ const c=stock.pop(); c.faceUp=true; waste.push(c); draw();};
-      }else{
-        stub.style.background='transparent';
-        stub.onclick=()=>{ stock=waste.reverse().map(c=>(c.faceUp=false,c)); waste.length=0; draw();};
-      }
-      el.appendChild(stub);
-    }
+function checkWin(){
+  if(foundations.every(f=>f.length===13)) setTimeout(()=>alert("🎉 Du vann!"),300);
+}
 
-    function drawWaste(){
-      const el=document.getElementById('waste'); el.innerHTML='';
-      if(waste.length) el.appendChild(cardEl(waste[waste.length-1]));
-    }
-
-    function drawFoundations(){
-      foundations.forEach((pile,i)=>{
-        const el=document.getElementById('foundation'+i); el.innerHTML='';
-        if(pile.length) el.appendChild(cardEl(pile[pile.length-1]));
-      });
-    }
-
-    function drawTableau(){
-      const board=document.getElementById('tableau'); board.innerHTML='';
-      tableau.forEach((pile,pi)=>{
-        const stack=document.createElement('div'); stack.className='stack';
-        let y=0;
-        pile.forEach(card=>{
-          const el=cardEl(card); el.style.top=y+'px';
-          y+=card.faceUp?30:8;
-          stack.appendChild(el);
-        });
-        board.appendChild(stack);
-      });
-    }
-
-    function moveCards(from,to,card){
-      const idx = from.indexOf(card);
-      const moving = from.splice(idx);
-      to.push(...moving);
-      const last = from[from.length - 1];
-      if (last && !last.faceUp) last.faceUp = true;
-      draw();
-    }
-
-    function autoComplete(){
-      let moved;
-      do {
-        moved = false;
-        const piles = [...tableau, waste];
-        for (const pile of piles) {
-          const card = pile[pile.length - 1];
-          if (!card || !card.faceUp) continue;
-          for (const foundation of foundations) {
-            const top = foundation[foundation.length - 1];
-            if ((!top && card.value === 'A') || (top && top.suit === card.suit && card.idx === top.idx + 1)) {
-              pile.pop();
-              foundation.push(card);
-              const last = pile[pile.length - 1];
-              if (last && !last.faceUp) last.faceUp = true;
-              moved = true;
-              break;
-            }
-          }
-        }
-      } while (moved);
-      draw();
-    }
-
-    function checkWin(){
-      if(foundations.every(f=>f.length===13)) setTimeout(()=>alert("🎉 Du vann!"),300);
-    }
-
-    newGame();
-  </script>
+newGame();</script>
 </body>
 </html>
