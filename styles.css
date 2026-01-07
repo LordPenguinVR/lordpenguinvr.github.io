@@ -965,7 +965,7 @@ a.link{
     transform-origin: bottom right;
 
     right: 12px !important;
-    bottom: 140px !important;
+    bottom: 240px !important;
   }
 }
 
@@ -974,8 +974,9 @@ a.link{
   .egg-dancer,
   .egg-frame{
     transform: scale(0.55) !important;
-    bottom: 160px !important;
+    bottom: 260px !important;
   }
 }
+
 
 
