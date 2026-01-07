@@ -11,7 +11,7 @@
 
   <div class="crt-screen" id="crtScreen">
 
-    <!-- FROSTED HEADER (moved OUTSIDE the scroll area so blur works) -->
+    <!-- FROSTED HEADER (outside scroll area) -->
     <div class="sticky-header">
       <div class="status-line">
         <span>Username: LordPenguinVR</span>
@@ -26,7 +26,7 @@
     <!-- Scrollable area -->
     <div class="crt-content">
 
-      <!-- Spacer so content doesn't go under the floating header -->
+      <!-- Spacer so content doesn't go under the overlay header -->
       <div class="header-spacer" aria-hidden="true"></div>
 
       <!-- LINKS -->
@@ -145,7 +145,6 @@
     <div class="terminal-footer">
       <div class="vibecode" id="vibeCode">vibecoded by LordPenguin</div>
 
-      <!-- Buttons on the right: Dancer button (left) + FX button (right) -->
       <div class="footer-actions">
         <button id="toggleDancer" class="fx-btn dancer-btn hidden" type="button">DANCER: ON</button>
         <button id="toggleFx" class="fx-btn" type="button">FX: ON</button>
@@ -154,71 +153,100 @@
 
   </div><!-- /.crt-screen -->
 
- <!-- Easter egg dancer (outside terminal) -->
-<div class="egg-frame" aria-hidden="true">
-  <img
-    id="eggDancer"
-    src="dance.gif"
-    alt=""
-    class="egg-dancer"
-    aria-hidden="true"
-  />
-</div>
-
+  <!-- Easter egg dancer (outside terminal) -->
+  <div class="egg-frame" aria-hidden="true">
+    <img
+      id="eggDancer"
+      src="dance.gif"
+      alt=""
+      class="egg-dancer"
+      aria-hidden="true"
+    />
+  </div>
 
   <script>
-  const screen = document.getElementById("crtScreen");
-  const btnFx = document.getElementById("toggleFx");
-  const vibecode = document.getElementById("vibeCode");
+    const screen = document.getElementById("crtScreen");
+    const btnFx = document.getElementById("toggleFx");
+    const vibecode = document.getElementById("vibeCode");
 
-  const dancer = document.getElementById("eggDancer");
-  const btnDancer = document.getElementById("toggleDancer");
+    const dancer = document.getElementById("eggDancer");
+    const frame = document.querySelector(".egg-frame");
+    const btnDancer = document.getElementById("toggleDancer");
 
-  // FX toggle (NOW also controls dancer effects via body class)
-  btnFx.addEventListener("click", () => {
-    const off = screen.classList.toggle("fx-off");
-    document.body.classList.toggle("fx-off", off); // ✅ ADD THIS LINE
-    btnFx.textContent = off ? "FX: OFF" : "FX: ON";
-  });
+    /* =========================
+       POSITION DANCER (ALWAYS)
+    ========================= */
+    function positionDancer() {
+      if (!frame) return;
 
-  // Dancer toggle (only works after egg activated)
-  btnDancer.addEventListener("click", () => {
-    const isOn = dancer.classList.toggle("show");
-    btnDancer.textContent = isOn ? "DANCER: ON" : "DANCER: OFF";
-  });
+      // Keep it fixed bottom-right (CSS is main authority)
+      frame.style.setProperty("position", "fixed", "important");
+      frame.style.setProperty("z-index", "9999", "important");
 
-  // Easter egg: click vibecode 5 times
-  let vibeClicks = 0;
-  let vibeTimer = null;
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
-  vibecode.style.cursor = "pointer";
-  vibecode.title = "👀";
-
-  function activateEgg() {
-    dancer.classList.add("show");
-    btnDancer.classList.remove("hidden");
-    btnDancer.textContent = "DANCER: ON";
-  }
-
-  vibecode.addEventListener("click", () => {
-    vibeClicks++;
-
-    clearTimeout(vibeTimer);
-    vibeTimer = setTimeout(() => (vibeClicks = 0), 1200);
-
-    if (vibeClicks >= 5) {
-      vibeClicks = 0;
-      activateEgg();
+      if (isMobile) {
+        frame.style.setProperty("right", "-100px", "important");
+        frame.style.setProperty("bottom", "calc(12px + env(safe-area-inset-bottom))", "important");
+        frame.style.setProperty("transform", "scale(1)", "important");
+        frame.style.setProperty("transform-origin", "bottom right", "important");
+      } else {
+        frame.style.setProperty("right", "-90px", "important");
+        frame.style.setProperty("bottom", "16px", "important");
+        frame.style.setProperty("transform", "none", "important");
+        frame.style.setProperty("transform-origin", "bottom right", "important");
+      }
     }
-  });
 
+    window.addEventListener("resize", positionDancer, { passive: true });
+    window.addEventListener("orientationchange", positionDancer);
 
-</script>
+    /* =========================
+       FX TOGGLE (SCREEN + BODY)
+    ========================= */
+    btnFx.addEventListener("click", () => {
+      const off = screen.classList.toggle("fx-off");
+      document.body.classList.toggle("fx-off", off); // matches CSS
 
+      btnFx.textContent = off ? "FX: OFF" : "FX: ON";
+    });
 
+    /* =========================
+       DANCER TOGGLE
+    ========================= */
+    btnDancer.addEventListener("click", () => {
+      const isOn = frame.classList.toggle("show");
+      dancer.classList.toggle("show", isOn);
+      btnDancer.textContent = isOn ? "DANCER: ON" : "DANCER: OFF";
+      positionDancer();
+    });
+
+    /* =========================
+       EASTER EGG ACTIVATION
+    ========================= */
+    let clicks = 0;
+    let timer = null;
+
+    vibecode.style.cursor = "pointer";
+    vibecode.title = "👀";
+
+    vibecode.addEventListener("click", () => {
+      clicks++;
+      clearTimeout(timer);
+      timer = setTimeout(() => (clicks = 0), 1200);
+
+      if (clicks >= 5) {
+        clicks = 0;
+
+        frame.classList.add("show");
+        dancer.classList.add("show");
+
+        btnDancer.classList.remove("hidden");
+        btnDancer.textContent = "DANCER: ON";
+
+        positionDancer();
+      }
+    });
+  </script>
 </body>
 </html>
-
-
-
-
