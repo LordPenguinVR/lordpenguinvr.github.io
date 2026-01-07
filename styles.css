@@ -1,51 +1,114 @@
-/* styles.css */
-
 /* =========================
-   RESET & CENTER (DESKTOP)
+   styles.css (cleaned)
 ========================= */
-html, body {
+
+/* ---------- Design tokens ---------- */
+:root{
+  --bg: #000;
+  --fg: #00ff00;
+
+  --radius: 20px;
+  --border: rgba(0,255,0,0.30);
+  --border-soft: rgba(0,255,0,0.14);
+
+  --shadow: 0 0 16px rgba(0,255,0,0.14), inset 0 0 18px rgba(0,255,0,0.10);
+  --text-glow: 0 0 8px rgba(0,255,0,0.18);
+
+  --pad: 12px;
+  --header-pad-top: 90px;
+  --header-pad-top-mobile: 110px;
+
+  --scrollbar-w: 12px;
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- Base reset ---------- */
+*,
+*::before,
+*::after{ box-sizing: border-box; }
+
+html, body{
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #000;
+  background: var(--bg);
   font-family: "Courier New", Courier, monospace;
+}
 
+/* Desktop: center the terminal */
+body{
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+/* Better viewport units when supported */
+@supports (height: 100dvh){
+  html, body{ height: 100dvh; }
+}
+
 /* =========================
-   TERMINAL WINDOW (flex layout)
+   TERMINAL WINDOW
 ========================= */
-.crt-screen {
+.crt-screen{
   width: 900px;
   max-width: 96vw;
   height: 92vh;
 
-  background: #000;
-  padding: 12px;
-  box-sizing: border-box;
+  background: var(--bg);
+  padding: var(--pad);
   position: relative;
-
-  border: 2px solid rgba(0,255,0,0.30);
-  box-shadow: 0 0 16px rgba(0,255,0,0.14), inset 0 0 18px rgba(0,255,0,0.10);
   overflow: hidden;
+
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
 
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+}
+
+/* Background scanlines + vignette */
+.crt-screen::before,
+.crt-screen::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: var(--radius);
+}
+
+.crt-screen::before{
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,255,0,0.03),
+    rgba(0,255,0,0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-screen::after{
+  background:
+    radial-gradient(1200px 700px at 50% 40%, rgba(0,255,0,0.07), transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, rgba(0,0,0,0.55), transparent 55%),
+    radial-gradient(900px 600px at 50% -20%, rgba(0,0,0,0.55), transparent 55%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
 }
 
 /* Scroll happens INSIDE terminal only */
-.crt-content {
+.crt-content{
   flex: 1 1 auto;
   min-height: 0;
 
   overflow: auto;
   padding-right: 10px;
+  padding-top: var(--header-pad-top);
 
-  color: #00ff00;
+  color: var(--fg);
   font-size: 1.02em;
   line-height: 1.32;
 
@@ -53,28 +116,25 @@ html, body {
   z-index: 2;
 
   animation: crt-flicker 2.4s infinite;
-  text-shadow: 0 0 8px rgba(0,255,0,0.18);
+  text-shadow: var(--text-glow);
   -webkit-font-smoothing: antialiased;
   font-variant-ligatures: none;
 
-  /* header overlay space */
-  padding-top: 90px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,255,0,0.24) rgba(0,0,0,0.85);
 }
 
-/* spacer element to guarantee room under overlay header */
-.header-spacer { height: 0; }
-
 /* =========================
-   FROSTED HEADER (overlay)
+   STICKY HEADER (overlay)
 ========================= */
 .sticky-header{
   position: absolute;
   top: 10px;
-  left: 12px;
-  right: 28px; /* room for scrollbar */
-  z-index: 9999;
+  left: var(--pad);
+  right: calc(var(--pad) + var(--scrollbar-w)); /* room for scrollbar */
+  z-index: 5;
 
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0,0,0,0.28);
   -webkit-backdrop-filter: blur(5px) saturate(160%);
   backdrop-filter: blur(5px) saturate(160%);
 
@@ -82,12 +142,13 @@ html, body {
   border-radius: 14px;
 
   padding: 10px 14px 12px;
+  overflow: hidden;
 
   box-shadow:
     0 10px 26px rgba(0,0,0,0.65),
     0 0 0 1px rgba(0,255,0,0.10) inset;
 
-  overflow: hidden;
+  color: var(--fg);
 }
 
 .sticky-header::after{
@@ -95,136 +156,113 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-
-  background: radial-gradient(900px 140px at 15% 0%,
-    rgba(0,255,0,0.10),
-    transparent 55%);
+  background: radial-gradient(900px 140px at 15% 0%, rgba(0,255,0,0.10), transparent 55%);
   opacity: 0.6;
 }
 
-.sticky-header,
-.sticky-header * {
-  color: #00ff00;
-}
-
-/* =========================
-   HEADER LINES
-========================= */
-.status-line {
+/* Header lines */
+.status-line{
   display: flex;
-  gap: 14px;
   flex-wrap: wrap;
+  gap: 14px;
   font-size: 0.95em;
   margin-bottom: 6px;
   opacity: 0.95;
 }
 
-.command-line {
-  margin: 6px 0 0;
-}
+.command-line{ margin: 6px 0 0; }
 
 /* =========================
-   SECTION TITLES
+   SECTIONS / GROUPS / GRIDS
 ========================= */
-.section {
-  margin: 14px 0 18px;
-}
+.section{ margin: 14px 0 18px; }
 
-.section-title {
+.section-title{
   font-size: 0.88em;
-  opacity: 0.95;
   margin: 0 0 10px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(0,255,0,0.18);
-  background: transparent;
-  box-shadow: none;
+
+  opacity: 0.95;
   letter-spacing: 0.4px;
   text-transform: uppercase;
+
+  border-bottom: 1px solid rgba(0,255,0,0.18);
 }
 
-/* =========================
-   GROUPS
-========================= */
-.link-groups {
+.link-groups{
   display: grid;
   gap: 12px;
 }
 
-.link-group {
-  border: 1px solid rgba(0,255,0,0.14);
+.link-group{
+  border: 1px solid var(--border-soft);
   background: rgba(0,0,0,0.35);
   padding: 10px;
-  box-shadow: none;
   border-radius: 6px;
 }
 
-.group-title {
-  font-size: 0.9em;
-  opacity: 0.85;
-  margin-bottom: 8px;
+.group-title{
   display: flex;
   align-items: center;
   gap: 8px;
+
+  font-size: 0.9em;
+  margin: 0 0 8px;
+  opacity: 0.85;
 }
 
-.group-title::before {
+.group-title::before{
   content: "•";
   opacity: 0.7;
 }
 
-/* =========================
-   GRIDS
-========================= */
-.link-grid {
+.link-grid{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.tile-grid {
+.tile-grid{
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
 }
 
-@media (min-width: 900px) {
-  .tile-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .tile.wide {
-    grid-column: 1 / -1;
-  }
+@media (min-width: 900px){
+  .tile-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile.wide{ grid-column: 1 / -1; }
 }
 
 /* =========================
    LINKS
 ========================= */
-a.link {
+a.link{
   display: flex;
   align-items: center;
   gap: 10px;
 
   padding: 7px 10px;
-  border: 1px solid rgba(0,255,0,0.14);
+  border-radius: 6px;
+
+  border: 1px solid var(--border-soft);
   background: rgba(0,0,0,0.35);
 
-  color: #00ff00;
+  color: var(--fg);
   text-decoration: none;
+  min-width: 0;
 
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
-  border-radius: 6px;
-  min-width: 0;
 }
 
-a.link:hover {
+a.link:hover{
   background: rgba(0,255,0,0.06);
   border-color: rgba(0,255,0,0.30);
   box-shadow: 0 0 0 1px rgba(0,255,0,0.22) inset;
 }
 
-a.link:active { background: rgba(0,255,0,0.10); }
+a.link:active{ background: rgba(0,255,0,0.10); }
 
-a.link:focus-visible {
+a.link:focus-visible{
   outline: 2px solid rgba(0,255,0,0.45);
   outline-offset: 2px;
 }
@@ -232,30 +270,30 @@ a.link:focus-visible {
 /* =========================
    TILES
 ========================= */
-.tile {
+.tile{
   display: flex;
   align-items: baseline;
   gap: 10px;
 
   padding: 6px 10px;
-  border: 1px dashed rgba(0,255,0,0.14);
-  background: rgba(0,0,0,0.20);
-  box-shadow: none;
-
-  color: #00ff00;
   border-radius: 6px;
+
+  border: 1px dashed var(--border-soft);
+  background: rgba(0,0,0,0.20);
+  color: var(--fg);
 }
 
-.tile.wide {
+.tile.wide{
   display: block;
   line-height: 1.4;
+
   border-style: solid;
   padding: 10px 12px;
   border-color: rgba(0,255,0,0.18);
   background: rgba(0,0,0,0.28);
 }
 
-.muted {
+.muted{
   opacity: 0.80;
   margin-left: auto;
   text-align: right;
@@ -263,9 +301,10 @@ a.link:focus-visible {
 
 /* =========================
    ICONS (default + per-class)
+   (kept as-is, just grouped)
 ========================= */
 a.link::before,
-.tile::before {
+.tile::before{
   content: "";
   width: 18px;
   height: 18px;
@@ -323,59 +362,28 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 /* =========================
    CURSOR
 ========================= */
-.cursor {
+.cursor{
   display: inline-block;
   width: 9px;
   height: 1.05em;
-  background: #00ff00;
   margin-left: 4px;
   vertical-align: -2px;
+
+  background: var(--fg);
+  border-radius: 1px;
+
   animation: blink 1s steps(2, start) infinite;
   box-shadow: 0 0 10px rgba(0,255,0,0.45);
-  border-radius: 1px;
 }
 
 /* =========================
-   BACKGROUND EFFECTS
+   FOOTER
 ========================= */
-.crt-screen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0,255,0,0.03),
-    rgba(0,255,0,0.03) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  pointer-events: none;
-  z-index: 1;
-  border-radius: 20px;
-}
-
-.crt-screen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  border-radius: 20px;
-  background:
-    radial-gradient(1200px 700px at 50% 40%, rgba(0,255,0,0.07), transparent 60%),
-    radial-gradient(900px 600px at 50% 120%, rgba(0,0,0,0.55), transparent 55%),
-    radial-gradient(900px 600px at 50% -20%, rgba(0,0,0,0.55), transparent 55%);
-  mix-blend-mode: screen;
-  opacity: 0.85;
-}
-
-/* =========================
-   FOOTER BAR
-========================= */
-.terminal-footer {
+.terminal-footer{
   flex: 0 0 auto;
   margin-top: 8px;
   padding: 10px 2px 2px;
+
   border-top: 1px solid rgba(0,255,0,0.18);
 
   display: flex;
@@ -383,13 +391,38 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   justify-content: space-between;
   gap: 12px;
 
-  z-index: 3;
+  z-index: 2;
 }
 
-.fx-btn {
+.footer-actions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Use button element for vibecode in the cleaned HTML */
+.vibecode{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+
+  color: rgba(0,255,0,0.78);
+  font: inherit;
+  font-size: 0.92em;
+
+  letter-spacing: 0.2px;
+  opacity: 0.95;
+  user-select: none;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fx-btn{
   font-family: inherit;
   font-size: 0.95em;
-  color: #00ff00;
+  color: var(--fg);
 
   background: rgba(0,0,0,0.65);
   border: 1px solid rgba(0,255,0,0.35);
@@ -403,113 +436,85 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   border-radius: 6px;
 }
 
-.fx-btn:hover {
+.fx-btn:hover{
   background: rgba(0,255,0,0.08);
   border-color: rgba(0,255,0,0.55);
 }
 
-.fx-btn:focus-visible {
+.fx-btn:focus-visible{
   outline: 2px solid rgba(0,255,0,0.45);
   outline-offset: 2px;
 }
 
-.vibecode {
-  color: rgba(0,255,0,0.78);
-  font-size: 0.92em;
-  letter-spacing: 0.2px;
-  opacity: 0.95;
-  user-select: none;
-  text-align: left;
+.hidden{ display: none !important; }
+
+#toggleFx{
+  min-width: 110px;
+  text-align: center;
   white-space: nowrap;
 }
 
-/* Buttons container on the right side of footer */
-.footer-actions{
-  display: flex;
-  align-items: center;
-  gap: 10px;
+#toggleDancer{
+  min-width: 150px;
+  text-align: center;
+  white-space: nowrap;
 }
-
-/* Hide/show the dancer toggle button */
-.hidden{
-  display: none !important;
-}
-
-#toggleFx { min-width: 110px; text-align: center; white-space: nowrap; }
-#toggleDancer { min-width: 150px; text-align: center; white-space: nowrap; }
 
 /* =========================
    FX OFF (disable background + glow)
 ========================= */
-.fx-off {
+.fx-off{
   box-shadow: none !important;
   border-color: rgba(0,255,0,0.18) !important;
 }
 
 .fx-off::before,
-.fx-off::after {
-  display: none !important;
-}
+.fx-off::after{ display: none !important; }
 
-.fx-off .crt-content {
+.fx-off .crt-content{
   animation: none !important;
   text-shadow: none !important;
 }
 
-.fx-off .cursor {
-  box-shadow: none !important;
-}
+.fx-off .cursor{ box-shadow: none !important; }
 
 /* =========================
    ANIMATIONS
 ========================= */
-@keyframes blink { to { visibility: hidden; } }
+@keyframes blink{ to { visibility: hidden; } }
 
-@keyframes crt-flicker {
+@keyframes crt-flicker{
   0%, 100% { opacity: 1; }
   50% { opacity: 0.992; }
 }
 
 /* =========================
-   SCROLLBAR STYLING
+   SCROLLBAR (WebKit)
 ========================= */
-.crt-content::-webkit-scrollbar { width: 12px; }
-.crt-content::-webkit-scrollbar-track {
+.crt-content::-webkit-scrollbar{ width: var(--scrollbar-w); }
+
+.crt-content::-webkit-scrollbar-track{
   background: rgba(0,0,0,0.85);
-  border-left: 1px solid rgba(0,255,0,0.14);
+  border-left: 1px solid var(--border-soft);
 }
-.crt-content::-webkit-scrollbar-thumb {
+
+.crt-content::-webkit-scrollbar-thumb{
   background: rgba(0,255,0,0.16);
   border: 1px solid rgba(0,255,0,0.24);
 }
-.crt-content::-webkit-scrollbar-thumb:hover {
+
+.crt-content::-webkit-scrollbar-thumb:hover{
   background: rgba(0,255,0,0.22);
 }
 
-.crt-content {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,255,0,0.24) rgba(0,0,0,0.85);
-}
-
 /* =========================
-   MOBILE: terminal fullscreen + stop page centering flex
+   RESPONSIVE: MOBILE
 ========================= */
-@supports (height: 100dvh) {
-  html, body { height: 100dvh; }
-}
-
-@media (max-width: 768px) {
-  html, body{
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    background: #000;
-  }
-
+@media (max-width: 768px){
+  /* stop page centering flex */
   body{
-    display: block;           /* override desktop centering */
-    overflow: hidden;         /* prevent double scroll behind terminal */
+    display: block;
+    overflow: hidden; /* prevent double scroll behind terminal */
   }
 
   .crt-screen{
@@ -522,28 +527,24 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 
     border: none;
     box-shadow: none;
-    padding: 12px;
     border-radius: 0;
   }
 
   .crt-screen::before,
-  .crt-screen::after {
-    border-radius: 0;
-  }
+  .crt-screen::after{ border-radius: 0; }
 
   .crt-content{
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+
     padding-right: 6px;
-    padding-top: 110px; /* header is a bit taller on phone */
+    padding-top: var(--header-pad-top-mobile);
   }
 
   .link-grid,
-  .tile-grid {
-    grid-template-columns: 1fr;
-  }
+  .tile-grid{ grid-template-columns: 1fr; }
 
-  .muted {
+  .muted{
     margin-left: 0;
     text-align: left;
     display: block;
@@ -551,7 +552,6 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
     word-break: break-word;
   }
 
-  /* header on phone */
   .sticky-header{
     left: 10px;
     right: 10px;
@@ -559,12 +559,12 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 520px){
   .terminal-footer{
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding-bottom: calc(10px + var(--safe-bottom));
   }
 
   .fx-btn{
@@ -580,12 +580,14 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 
 /* =========================
    DANCER (single source of truth)
+   - no duplicates
+   - no absolute-inside-terminal version
 ========================= */
 .egg-frame{
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 9999;
+  right: 12px;
+  bottom: calc(0px + var(--safe-bottom));
+  z-index: 1;
 
   opacity: 0;
   visibility: hidden;
@@ -601,17 +603,21 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 
 .egg-dancer{
   display: block;
-  position: static;
   image-rendering: pixelated;
 }
 
-/* Phone: truly bottom + safe area */
-@media (max-width: 768px){
+/* Desktop: slightly different offset if you want */
+@media (min-width: 769px){
   .egg-frame{
-    right: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    transform: scale(0.65);
+    right: 16px;
+    bottom: 16px;
+    transform: none;
   }
+}
+
+/* Phone: scale down a bit */
+@media (max-width: 768px){
+  .egg-frame{ transform: scale(0.65); }
 }
 
 /* Glow only when FX is ON */
@@ -620,95 +626,15 @@ body:not(.fx-off) .egg-dancer{
     drop-shadow(0 0 6px rgba(0,255,0,0.45))
     drop-shadow(0 0 14px rgba(0,255,0,0.25));
 }
-body.fx-off .egg-dancer{
-  filter: none;
-}
+body.fx-off .egg-dancer{ filter: none; }
 
 /* =========================
    Prevent horizontal overflow
 ========================= */
-.crt-screen, .crt-content, .link-group, .link-grid, .tile-grid{
+.crt-screen,
+.crt-content,
+.link-group,
+.link-grid,
+.tile-grid{
   max-width: 100%;
 }
-
-/* =========================================================
-   DANCER: HARD BOTTOM DOCK (OVERRIDE EVERYTHING)
-   Paste at VERY BOTTOM of styles.css
-========================================================= */
-
-/* Wrapper is the only positioned thing */
-.egg-frame{
-  position: fixed !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: auto !important;
-  top: auto !important;
-
-
-  /* make sure the image sits on the bottom edge */
-  display: flex !important;
-  align-items: flex-end !important;
-  justify-content: flex-end !important;
-
-  padding-right: 16px !important;
-  padding-bottom: 16px !important;
-
-  transform: none !important;
-  transform-origin: bottom right !important;
-
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.egg-frame.show{
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* The image should not be fixed/absolute */
-.egg-dancer{
-  position: static !important;
-  display: block !important;
-
-  /* IMPORTANT: fixes “not at bottom” when GIF has transparent padding */
-  margin-bottom: -40px !important;  /* <-- tweak this (try -20, -60, -80) */
-
-  /* optional: keep your glow rules elsewhere */
-}
-
-/* Mobile: respect gesture bar safe area */
-@media (max-width: 768px){
-  .egg-frame{
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-    padding-right: 12px !important;
-  }
-
-  .egg-dancer{
-    margin-bottom: -40px !important; /* tweak separately for phone if needed */
-  }
-}
-
-/* =========================
-   FORCE DANCER BEHIND TERMINAL
-========================= */
-
-/* Create a root stacking context */
-body{
-  position: relative;
-  z-index: 0;
-}
-
-/* Terminal is ABOVE */
-.crt-screen{
-  position: relative;
-  z-index: 5;
-}
-
-/* Dancer is BELOW EVERYTHING */
-.egg-frame{
-  position: fixed !important;
-  z-index: -5 !important;      /* truly behind */
-  pointer-events: none !important;
-}
-
