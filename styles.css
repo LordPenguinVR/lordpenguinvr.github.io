@@ -713,3 +713,244 @@ body:not(.fx-off) .egg-dancer{
 body.fx-off .egg-dancer{
   filter: none !important;
 }
+
+/* =========================================================
+   PHONE FIX PACK (Samsung Galaxy S24 Ultra / Android Chrome)
+   Paste at VERY BOTTOM of styles.css
+========================================================= */
+
+/* Use dynamic viewport height on mobile to avoid address-bar jump */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
+
+/* General mobile: make the terminal truly fit the screen */
+@media (max-width: 768px) {
+  html, body{
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body{
+    /* stop "centered card" behavior on phones */
+    display: block;
+    align-items: initial;
+    justify-content: initial;
+
+    background: #000;
+    overflow: hidden; /* prevent double-scroll behind terminal */
+  }
+
+  /* Terminal becomes full screen */
+  .crt-screen{
+    width: 100vw;
+    max-width: 100vw;
+
+    /* dynamic height (fixes Samsung URL bar resizing) */
+    height: 100vh;
+    height: 100svh;   /* small viewport height (stable) */
+    height: 100dvh;   /* dynamic viewport height (best) */
+
+    padding: 10px;
+
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .crt-screen::before,
+  .crt-screen::after{
+    border-radius: 0;
+  }
+
+  /* Make scrolling smooth + avoid iOS-like rubber band weirdness */
+  .crt-content{
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 6px; /* less wasted space on phone */
+  }
+
+  /* Make tap targets easier */
+  a.link,
+  .fx-btn{
+    padding: 10px 12px;
+    min-height: 44px; /* good mobile tap target */
+  }
+
+  /* Grids should be 1-column on phones */
+  .link-grid,
+  .tile-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Muted text wraps nicely */
+  .muted{
+    margin-left: 0;
+    text-align: left;
+    display: block;
+    margin-top: 2px;
+    word-break: break-word;
+  }
+}
+
+/* Small phones: footer layout + safe areas */
+@media (max-width: 520px) {
+  .terminal-footer{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    /* safe area for gesture bar */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .footer-actions{
+    gap: 8px;
+  }
+
+  .fx-btn{
+    width: 100%;
+  }
+
+  .vibecode{
+    text-align: center;
+    white-space: normal;
+  }
+}
+
+/* =========================================================
+   Frosted header: keep it inside, not covering scrollbar
+========================================================= */
+@media (max-width: 768px){
+  /* keep it inset so it never covers the scroll bar area */
+  .sticky-header{
+    left: 10px !important;
+    right: 26px !important; /* space for scrollbar */
+    top: 10px !important;
+  }
+
+  /* ensure content never hides under the header */
+  .header-spacer{
+    height: 96px; /* adjust if header grows */
+  }
+}
+
+@media (max-width: 520px){
+  .sticky-header{
+    right: 10px !important; /* scrollbar is often overlayed on tiny screens */
+  }
+
+  .header-spacer{
+    height: 108px;
+  }
+}
+
+/* =========================================================
+   Dancer: keep it clear of footer/buttons on phones
+========================================================= */
+@media (max-width: 768px){
+  .egg-frame,
+  .egg-dancer{
+    right: 10px !important;
+    bottom: 160px !important; /* above stacked footer/buttons */
+  }
+}
+
+@media (max-width: 520px){
+  .egg-frame,
+  .egg-dancer{
+    bottom: 210px !important;
+  }
+}
+
+/* =========================================================
+   Prevent horizontal overflow (common on mobile)
+========================================================= */
+.crt-screen, .crt-content, .link-group, .link-grid, .tile-grid{
+  max-width: 100%;
+}
+
+a.link{
+  min-width: 0;
+}
+
+/* ===== PHONE: make the terminal truly fullscreen (no gray outside) ===== */
+@media (max-width: 768px){
+  html, body{
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #000 !important;
+  }
+
+  body{
+    display: block !important;      /* override desktop centering flex */
+    overflow: hidden !important;     /* prevent page scroll behind terminal */
+  }
+
+  .crt-screen{
+    width: 100vw !important;
+    max-width: 100vw !important;
+
+    height: 100vh !important;
+    height: 100svh !important;       /* stable viewport on mobile */
+    height: 100dvh !important;       /* dynamic viewport (best on S24) */
+
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    padding: 12px !important;
+    box-sizing: border-box;
+  }
+
+  .crt-screen::before,
+  .crt-screen::after{
+    border-radius: 0 !important;
+  }
+
+  /* Scroll only inside content */
+  .crt-content{
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+
+    padding-right: 6px !important;
+  }
+
+  /* Footer always visible and comfortable */
+  .terminal-footer{
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Bigger tap targets on phone */
+  a.link, .fx-btn{
+    min-height: 48px;
+    padding: 12px 12px;
+  }
+
+  /* Ensure single column */
+  .link-grid, .tile-grid{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Extra small phones: stack footer nicely */
+@media (max-width: 520px){
+  .terminal-footer{
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .fx-btn{
+    width: 100% !important;
+  }
+
+  .vibecode{
+    text-align: center !important;
+    white-space: normal !important;
+  }
+}
