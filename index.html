@@ -212,34 +212,39 @@
     }
   });
 
-    function positionDancerForMobile() {
+function setDancerPos() {
   const dancer = document.getElementById("eggDancer");
-  const frame = document.querySelector(".egg-frame"); // if you use a wrapper
+  const frame = document.querySelector(".egg-frame"); // only if you use wrapper
   const target = frame || dancer;
-
   if (!target) return;
 
-  // Mobile / phone
-  if (window.innerWidth <= 768) {
-    // Raise it higher so it doesn't sit in the browser UI/footer area
-    target.style.right = "12px";
-    target.style.bottom = "260px";
+  // Always ensure it's fixed-positioned
+  target.style.setProperty("position", "fixed", "important");
+
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    // ✅ move UP on phone
+    target.style.setProperty("right", "12px", "important");
+    target.style.setProperty("bottom", "320px", "important"); // <- change this number
   } else {
-    // Desktop default
-    target.style.right = "16px";
-    target.style.bottom = "260px";
+    // desktop default
+    target.style.setProperty("right", "16px", "important");
+    target.style.setProperty("bottom", "16px", "important");
   }
 }
 
-// Run now + whenever phone UI changes height (address bar, rotate, etc.)
-window.addEventListener("load", positionDancerForMobile);
-window.addEventListener("resize", positionDancerForMobile);
-window.addEventListener("orientationchange", positionDancerForMobile);
+window.addEventListener("load", setDancerPos);
+window.addEventListener("resize", setDancerPos);
+window.addEventListener("orientationchange", setDancerPos);
+
+// run once immediately too
+setDancerPos();
+
 
 </script>
 
 
 </body>
 </html>
+
 
 
