@@ -961,7 +961,7 @@ a.link{
 @media (max-width: 768px){
   .egg-dancer,
   .egg-frame{
-    transform: scale(0.5) !important;     /* ← THIS is the key */
+    transform: scale(0.4) !important;     /* ← THIS is the key */
     transform-origin: bottom right;
 
     right: 12px !important;
@@ -977,6 +977,7 @@ a.link{
     bottom: 260px !important;
   }
 }
+
 
 
 
