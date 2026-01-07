@@ -955,4 +955,27 @@ a.link{
   }
 }
 
+/* =========================
+   MOBILE: scale dancer down
+========================= */
+@media (max-width: 768px){
+  .egg-dancer,
+  .egg-frame{
+    transform: scale(0.6) !important;     /* ← THIS is the key */
+    transform-origin: bottom right;
+
+    right: 12px !important;
+    bottom: 140px !important;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 520px){
+  .egg-dancer,
+  .egg-frame{
+    transform: scale(0.55) !important;
+    bottom: 160px !important;
+  }
+}
+
 
