@@ -954,3 +954,20 @@ a.link{
     white-space: normal !important;
   }
 }
+
+/* Phone: lift dancer higher (Galaxy S24 Ultra) */
+@media (max-width: 768px){
+  .egg-dancer,
+  .egg-frame{
+    bottom: calc(260px + env(safe-area-inset-bottom)) !important;
+    right: 12px !important;
+  }
+}
+
+/* Extra small phones: lift a bit more */
+@media (max-width: 520px){
+  .egg-dancer,
+  .egg-frame{
+    bottom: calc(300px + env(safe-area-inset-bottom)) !important;
+  }
+}
