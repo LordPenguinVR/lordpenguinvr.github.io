@@ -211,9 +211,34 @@
       activateEgg();
     }
   });
-  
+
+    function positionDancerForMobile() {
+  const dancer = document.getElementById("eggDancer");
+  const frame = document.querySelector(".egg-frame"); // if you use a wrapper
+  const target = frame || dancer;
+
+  if (!target) return;
+
+  // Mobile / phone
+  if (window.innerWidth <= 768) {
+    // Raise it higher so it doesn't sit in the browser UI/footer area
+    target.style.right = "12px";
+    target.style.bottom = "260px";
+  } else {
+    // Desktop default
+    target.style.right = "16px";
+    target.style.bottom = "16px";
+  }
+}
+
+// Run now + whenever phone UI changes height (address bar, rotate, etc.)
+window.addEventListener("load", positionDancerForMobile);
+window.addEventListener("resize", positionDancerForMobile);
+window.addEventListener("orientationchange", positionDancerForMobile);
+
 </script>
 
 
 </body>
 </html>
+
