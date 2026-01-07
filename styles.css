@@ -1,7 +1,7 @@
 /* styles.css */
 
 /* =========================
-   RESET & CENTER
+   RESET & CENTER (DESKTOP)
 ========================= */
 html, body {
   margin: 0;
@@ -9,6 +9,7 @@ html, body {
   height: 100%;
   background: #000;
   font-family: "Courier New", Courier, monospace;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -55,23 +56,55 @@ html, body {
   text-shadow: 0 0 8px rgba(0,255,0,0.18);
   -webkit-font-smoothing: antialiased;
   font-variant-ligatures: none;
+
+  /* header overlay space */
+  padding-top: 90px;
 }
 
+/* spacer element to guarantee room under overlay header */
+.header-spacer { height: 0; }
+
 /* =========================
-   STICKY HEADER (stays top while scrolling)
+   FROSTED HEADER (overlay)
 ========================= */
-.sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+.sticky-header{
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 28px; /* room for scrollbar */
+  z-index: 9999;
 
-  /* keeps header readable over content while scrolling */
-  background: rgba(0,0,0,0.92);
-  padding: 2px 0 10px;
+  background: rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: blur(5px) saturate(160%);
+  backdrop-filter: blur(5px) saturate(160%);
 
-  /* subtle separator */
-  border-bottom: 1px solid rgba(0,255,0,0.14);
-  margin-bottom: 10px;
+  border: 1px solid rgba(0,255,0,0.25);
+  border-radius: 14px;
+
+  padding: 10px 14px 12px;
+
+  box-shadow:
+    0 10px 26px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(0,255,0,0.10) inset;
+
+  overflow: hidden;
+}
+
+.sticky-header::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background: radial-gradient(900px 140px at 15% 0%,
+    rgba(0,255,0,0.10),
+    transparent 55%);
+  opacity: 0.6;
+}
+
+.sticky-header,
+.sticky-header * {
+  color: #00ff00;
 }
 
 /* =========================
@@ -122,6 +155,7 @@ html, body {
   background: rgba(0,0,0,0.35);
   padding: 10px;
   box-shadow: none;
+  border-radius: 6px;
 }
 
 .group-title {
@@ -178,6 +212,8 @@ a.link {
   text-decoration: none;
 
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  border-radius: 6px;
+  min-width: 0;
 }
 
 a.link:hover {
@@ -186,9 +222,7 @@ a.link:hover {
   box-shadow: 0 0 0 1px rgba(0,255,0,0.22) inset;
 }
 
-a.link:active {
-  background: rgba(0,255,0,0.10);
-}
+a.link:active { background: rgba(0,255,0,0.10); }
 
 a.link:focus-visible {
   outline: 2px solid rgba(0,255,0,0.45);
@@ -209,6 +243,7 @@ a.link:focus-visible {
   box-shadow: none;
 
   color: #00ff00;
+  border-radius: 6px;
 }
 
 .tile.wide {
@@ -335,7 +370,7 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 
 /* =========================
-   FOOTER BAR (text left, button right)
+   FOOTER BAR
 ========================= */
 .terminal-footer {
   flex: 0 0 auto;
@@ -365,6 +400,7 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   letter-spacing: 0.8px;
 
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  border-radius: 6px;
 }
 
 .fx-btn:hover {
@@ -386,6 +422,21 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   text-align: left;
   white-space: nowrap;
 }
+
+/* Buttons container on the right side of footer */
+.footer-actions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Hide/show the dancer toggle button */
+.hidden{
+  display: none !important;
+}
+
+#toggleFx { min-width: 110px; text-align: center; white-space: nowrap; }
+#toggleDancer { min-width: 150px; text-align: center; white-space: nowrap; }
 
 /* =========================
    FX OFF (disable background + glow)
@@ -441,12 +492,34 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 
 /* =========================
-   MOBILE
+   MOBILE: terminal fullscreen + stop page centering flex
 ========================= */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
+
 @media (max-width: 768px) {
-  .crt-screen {
+  html, body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
     width: 100%;
+    background: #000;
+  }
+
+  body{
+    display: block;           /* override desktop centering */
+    overflow: hidden;         /* prevent double scroll behind terminal */
+  }
+
+  .crt-screen{
+    width: 100vw;
+    max-width: 100vw;
+
     height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+
     border: none;
     box-shadow: none;
     padding: 12px;
@@ -456,6 +529,13 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
   .crt-screen::before,
   .crt-screen::after {
     border-radius: 0;
+  }
+
+  .crt-content{
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    padding-top: 110px; /* header is a bit taller on phone */
   }
 
   .link-grid,
@@ -468,520 +548,160 @@ a.link.trackers::before { background-image: url("data:image/svg+xml,%3Csvg xmlns
     text-align: left;
     display: block;
     margin-top: 2px;
+    word-break: break-word;
+  }
+
+  /* header on phone */
+  .sticky-header{
+    left: 10px;
+    right: 10px;
+    top: 10px;
   }
 }
 
 @media (max-width: 520px) {
-  .terminal-footer {
+  .terminal-footer{
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
-  .fx-btn {
+
+  .fx-btn{
     width: 100%;
+    min-height: 48px;
   }
-  .vibecode {
+
+  .vibecode{
     text-align: center;
     white-space: normal;
   }
 }
 
 /* =========================
-   CONTENT YOU DIDN'T ASK FOR:
-   (This is intentionally blank.)
+   DANCER (single source of truth)
 ========================= */
-
-/* ===== Easter egg dancer ===== */
-.egg-dancer{
+.egg-frame{
   position: fixed;
-  right: -70px;
-  bottom: 0px;
+  right: 16px;
+  bottom: 16px;
   z-index: 9999;
-
-  transform: scale();
-  transform-origin: bottom right;
 
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 
-  image-rendering: pixelated;
-
-  transition: opacity 160ms ease, visibility 160ms ease;
+  transform-origin: bottom right;
 }
 
-.egg-dancer.show{
+.egg-frame.show{
   opacity: 1;
   visibility: visible;
 }
 
-/* Buttons container on the right side of footer */
-.footer-actions{
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.egg-dancer{
+  display: block;
+  position: static;
+  image-rendering: pixelated;
 }
 
-/* Hide/show the dancer toggle button */
-.hidden{
-  display: none !important;
-}
-
-#toggleFx { min-width: 110px; text-align: center; white-space: nowrap; }
-#toggleDancer { min-width: 150px; text-align: center; white-space: nowrap; }
-
-/* ✅ Mobile: lift dancer above the footer buttons */
+/* Phone: truly bottom + safe area */
 @media (max-width: 768px){
-  body .egg-dancer{
-    bottom: 60px !important; /* tweak 110–180px */
-    right: -70px !important;
+  .egg-frame{
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: scale(0.65);
   }
+}
+
+/* Glow only when FX is ON */
+body:not(.fx-off) .egg-dancer{
+  filter:
+    drop-shadow(0 0 6px rgba(0,255,0,0.45))
+    drop-shadow(0 0 14px rgba(0,255,0,0.25));
+}
+body.fx-off .egg-dancer{
+  filter: none;
 }
 
 /* =========================
-   FROSTED GLASS HEADER (like screenshot)
+   Prevent horizontal overflow
 ========================= */
-
-.crt-screen{
-  position: relative; /* ensure absolute header anchors here */
-}
-
-/* Header overlays the scrolling content */
-.sticky-header{
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  right: 12px;
-  z-index: 9999;
-
-  /* frosted glass */
-  background: rgba(0, 0, 0, 0.28);
-  -webkit-backdrop-filter: blur(5px) saturate(160%);
-  backdrop-filter: blur(5px) saturate(160%);
-
-  border: 1px solid rgba(0,255,0,0.25);
-  border-radius: 14px;
-
-  padding: 10px 14px 12px;
-
-  box-shadow:
-    0 10px 26px rgba(0,0,0,0.65),
-    0 0 0 1px rgba(0,255,0,0.10) inset;
-
-  overflow: hidden;
-}
-
-/* Optional: a subtle “glass shine” like UI panels */
-.sticky-header::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  background: radial-gradient(900px 140px at 15% 0%,
-    rgba(0,255,0,0.10),
-    transparent 55%);
-  opacity: 0.6;
-}
-
-/* Make room so content doesn't hide under the overlay header */
-.crt-content{
-  padding-top: 90px; /* adjust if your header becomes taller */
-}
-
-/* On mobile: header fits nicer */
-@media (max-width: 520px){
-  .crt-content{ padding-top: 110px; }
-}
-
-/* Fix text color inside frosted top bar */
-.sticky-header,
-.sticky-header * {
-  color: #00ff00;
-}
-
-/* Scrollbar-aware header width */
-:root{
-  --scrollbar-safe: 16px;
-}
-
-.sticky-header{
-  left: 12px;
-  right: calc(12px + var(--scrollbar-safe));
-}
-
-/* Subtle rounded corners everywhere */
-.link-group,
-a.link,
-.tile,
-.tile.wide,
-.fx-btn {
-  border-radius: 6px;
-}
-
-/* Terminal-green dancer that is visible on black */
-.egg-dancer{
-  display: block;
-  image-rendering: pixelated;
-
-  /* convert to CRT green */
-  filter:
-    grayscale(100%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%);
-
-  /* PHOSPHOR glow (this is what makes it visible) */
-  filter:
-    grayscale(0%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%)
-    drop-shadow(0 0 6px rgba(0,255,0,0.45))
-    drop-shadow(0 0 14px rgba(0,255,0,0.25));
-
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* Dancer glow ONLY when FX is ON */
-.crt-screen:not(.fx-off) .egg-dancer{
-  filter:
-    grayscale(100%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%)
-    drop-shadow(0 0 6px rgba(0,255,0,0.45))
-    drop-shadow(0 0 14px rgba(0,255,0,0.25));
-}
-
-/* Green dancer always */
-.egg-dancer{
-  filter:
-    grayscale(100%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%);
-}
-
-/* Glow ONLY when FX is ON (body does NOT have .fx-off) */
-body:not(.fx-off) .egg-dancer{
-  filter:
-    grayscale(100%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%)
-    drop-shadow(0 0 6px rgba(0,255,0,0.45))
-    drop-shadow(0 0 14px rgba(0,255,0,0.25));
-}
-
-/* When FX is OFF: force no glow */
-body.fx-off .egg-dancer{
-  filter:
-    grayscale(100%)
-    brightness(1.25)
-    contrast(1.1)
-    sepia(100%)
-    hue-rotate(85deg)
-    saturate(260%) !important;
-}
-
-/* Dancer: keep the GIF's original colors */
-.egg-dancer{
-  filter: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* FX ON: add glow only (no recolor) */
-body:not(.fx-off) .egg-dancer{
-  filter:
-    drop-shadow(0 0 6px rgba(0,255,0,0.45))
-    drop-shadow(0 0 14px rgba(0,255,0,0.25)) !important;
-}
-
-/* FX OFF: no glow */
-body.fx-off .egg-dancer{
-  filter: none !important;
-}
-
-/* =========================================================
-   PHONE FIX PACK (Samsung Galaxy S24 Ultra / Android Chrome)
-   Paste at VERY BOTTOM of styles.css
-========================================================= */
-
-/* Use dynamic viewport height on mobile to avoid address-bar jump */
-@supports (height: 100dvh) {
-  html, body { height: 100dvh; }
-}
-
-/* General mobile: make the terminal truly fit the screen */
-@media (max-width: 768px) {
-  html, body{
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
-
-  body{
-    /* stop "centered card" behavior on phones */
-    display: block;
-    align-items: initial;
-    justify-content: initial;
-
-    background: #000;
-    overflow: hidden; /* prevent double-scroll behind terminal */
-  }
-
-  /* Terminal becomes full screen */
-  .crt-screen{
-    width: 100vw;
-    max-width: 100vw;
-
-    /* dynamic height (fixes Samsung URL bar resizing) */
-    height: 100vh;
-    height: 100svh;   /* small viewport height (stable) */
-    height: 100dvh;   /* dynamic viewport height (best) */
-
-    padding: 10px;
-
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
-
-  .crt-screen::before,
-  .crt-screen::after{
-    border-radius: 0;
-  }
-
-  /* Make scrolling smooth + avoid iOS-like rubber band weirdness */
-  .crt-content{
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    padding-right: 6px; /* less wasted space on phone */
-  }
-
-  /* Make tap targets easier */
-  a.link,
-  .fx-btn{
-    padding: 10px 12px;
-    min-height: 44px; /* good mobile tap target */
-  }
-
-  /* Grids should be 1-column on phones */
-  .link-grid,
-  .tile-grid{
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Muted text wraps nicely */
-  .muted{
-    margin-left: 0;
-    text-align: left;
-    display: block;
-    margin-top: 2px;
-    word-break: break-word;
-  }
-}
-
-/* Small phones: footer layout + safe areas */
-@media (max-width: 520px) {
-  .terminal-footer{
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-
-    /* safe area for gesture bar */
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  }
-
-  .footer-actions{
-    gap: 8px;
-  }
-
-  .fx-btn{
-    width: 100%;
-  }
-
-  .vibecode{
-    text-align: center;
-    white-space: normal;
-  }
-}
-
-/* =========================================================
-   Frosted header: keep it inside, not covering scrollbar
-========================================================= */
-@media (max-width: 768px){
-  /* keep it inset so it never covers the scroll bar area */
-  .sticky-header{
-    left: 10px !important;
-    right: 26px !important; /* space for scrollbar */
-    top: 10px !important;
-  }
-
-  /* ensure content never hides under the header */
-  .header-spacer{
-    height: 96px; /* adjust if header grows */
-  }
-}
-
-@media (max-width: 520px){
-  .sticky-header{
-    right: 10px !important; /* scrollbar is often overlayed on tiny screens */
-  }
-
-  .header-spacer{
-    height: 108px;
-  }
-}
-
-/* =========================================================
-   Dancer: keep it clear of footer/buttons on phones
-========================================================= */
-@media (max-width: 768px){
-  .egg-frame,
-  .egg-dancer{
-    right: 10px !important;
-    bottom: 160px !important; /* above stacked footer/buttons */
-  }
-}
-
-@media (max-width: 520px){
-  .egg-frame,
-  .egg-dancer{
-    bottom: 210px !important;
-  }
-}
-
-/* =========================================================
-   Prevent horizontal overflow (common on mobile)
-========================================================= */
 .crt-screen, .crt-content, .link-group, .link-grid, .tile-grid{
   max-width: 100%;
 }
 
-a.link{
-  min-width: 0;
+/* =========================================================
+   DANCER: HARD BOTTOM DOCK (OVERRIDE EVERYTHING)
+   Paste at VERY BOTTOM of styles.css
+========================================================= */
+
+/* Wrapper is the only positioned thing */
+.egg-frame{
+  position: fixed !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  top: auto !important;
+
+
+  /* make sure the image sits on the bottom edge */
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+
+  padding-right: 16px !important;
+  padding-bottom: 16px !important;
+
+  transform: none !important;
+  transform-origin: bottom right !important;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
-/* ===== PHONE: make the terminal truly fullscreen (no gray outside) ===== */
+.egg-frame.show{
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* The image should not be fixed/absolute */
+.egg-dancer{
+  position: static !important;
+  display: block !important;
+
+  /* IMPORTANT: fixes “not at bottom” when GIF has transparent padding */
+  margin-bottom: -40px !important;  /* <-- tweak this (try -20, -60, -80) */
+
+  /* optional: keep your glow rules elsewhere */
+}
+
+/* Mobile: respect gesture bar safe area */
 @media (max-width: 768px){
-  html, body{
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: #000 !important;
+  .egg-frame{
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    padding-right: 12px !important;
   }
 
-  body{
-    display: block !important;      /* override desktop centering flex */
-    overflow: hidden !important;     /* prevent page scroll behind terminal */
-  }
-
-  .crt-screen{
-    width: 100vw !important;
-    max-width: 100vw !important;
-
-    height: 100vh !important;
-    height: 100svh !important;       /* stable viewport on mobile */
-    height: 100dvh !important;       /* dynamic viewport (best on S24) */
-
-    border-radius: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-
-    padding: 12px !important;
-    box-sizing: border-box;
-  }
-
-  .crt-screen::before,
-  .crt-screen::after{
-    border-radius: 0 !important;
-  }
-
-  /* Scroll only inside content */
-  .crt-content{
-    overflow: auto !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-
-    padding-right: 6px !important;
-  }
-
-  /* Footer always visible and comfortable */
-  .terminal-footer{
-    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-  }
-
-  /* Bigger tap targets on phone */
-  a.link, .fx-btn{
-    min-height: 48px;
-    padding: 12px 12px;
-  }
-
-  /* Ensure single column */
-  .link-grid, .tile-grid{
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Extra small phones: stack footer nicely */
-@media (max-width: 520px){
-  .terminal-footer{
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
-  }
-
-  .fx-btn{
-    width: 100% !important;
-  }
-
-  .vibecode{
-    text-align: center !important;
-    white-space: normal !important;
+  .egg-dancer{
+    margin-bottom: -40px !important; /* tweak separately for phone if needed */
   }
 }
 
 /* =========================
-   MOBILE: scale dancer down
+   DANCER BEHIND EVERYTHING
+   (paste at VERY bottom)
 ========================= */
-@media (max-width: 768px){
-  .egg-dancer,
-  .egg-frame{
-    transform: scale(0.6) !important;     /* ← THIS is the key */
-    transform-origin: bottom right;
 
-    right: 12px !important;
-    bottom: 40px !important;
-  }
+/* Put the dancer behind the terminal/content */
+.egg-frame{
+  z-index: 0 !important;          /* behind */
+  pointer-events: none !important;
 }
 
-/* Very small phones */
-@media (max-width: 520px){
-  .egg-dancer,
-  .egg-frame{
-    transform: scale(0.55) !important;
-    bottom: 60px !important;
-  }
+/* Make sure the terminal is above it */
+.crt-screen{
+  position: relative;             /* ensure z-index applies */
+  z-index: 10;
 }
-
-
-
-
-
-
-
-
