@@ -212,39 +212,13 @@
     }
   });
 
-function setDancerPos() {
-  const dancer = document.getElementById("eggDancer");
-  const frame = document.querySelector(".egg-frame"); // only if you use wrapper
-  const target = frame || dancer;
-  if (!target) return;
-
-  // Always ensure it's fixed-positioned
-  target.style.setProperty("position", "fixed", "important");
-
-  if (window.matchMedia("(max-width: 768px)").matches) {
-    // ✅ move UP on phone
-    target.style.setProperty("right", "12px", "important");
-    target.style.setProperty("bottom", "320px", "important"); // <- change this number
-  } else {
-    // desktop default
-    target.style.setProperty("right", "16px", "important");
-    target.style.setProperty("bottom", "16px", "important");
-  }
-}
-
-window.addEventListener("load", setDancerPos);
-window.addEventListener("resize", setDancerPos);
-window.addEventListener("orientationchange", setDancerPos);
-
-// run once immediately too
-setDancerPos();
-
 
 </script>
 
 
 </body>
 </html>
+
 
 
 
