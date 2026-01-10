@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Stream — Camera + Chat</title>
+  <style>
+    :root{
+      --bg:#0f0f14;
+      --panel:#171722;
+      --panel2:#1c1c2b;
+      --text:#e9e9f2;
+      --muted:#a8a8bf;
+      --accent:#a970ff; /* twitch-ish purple */
+      --good:#19e6a6;
+      --warn:#ffcc66;
+      --bad:#ff4d6d;
+      --line:rgba(255,255,255,.08);
+      --shadow: 0 14px 40px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(169,112,255,.20), transparent 55%),
+        radial-gradient(900px 500px at 95% 20%, rgba(25,230,166,.10), transparent 60%),
+        linear-gradient(180deg, #0c0c11, #0f0f14 35%, #0b0b10);
+      overflow:hidden;
+    }
+
+    /* Top bar */
+    .topbar{
+      height:64px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 18px;
+      border-bottom:1px solid var(--line);
+      background: rgba(10,10,14,.55);
+      backdrop-filter: blur(10px);
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .logo{
+      width:34px;height:34px;border-radius:10px;
+      background: linear-gradient(135deg, var(--accent), #6a5cff);
+      box-shadow: 0 10px 26px rgba(169,112,255,.25);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.45), transparent 55%);
+      transform: rotate(15deg);
+    }
+    .search{
+      flex:1;
+      max-width:560px;
+      margin:0 18px;
+      position:relative;
+    }
+    .search input{
+      width:100%;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:12px 44px 12px 14px;
+      border-radius:14px;
+      outline:none;
+    }
+    .search .hint{
+      position:absolute; right:10px; top:50%;
+      transform: translateY(-50%);
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:4px 8px;
+      border-radius:10px;
+      background: rgba(0,0,0,.18);
+    }
+    .top-actions{display:flex; gap:10px; align-items:center;}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .btn:hover{transform: translateY(-1px); border-color: rgba(169,112,255,.35)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(169,112,255,.95), rgba(106,92,255,.95));
+      border-color: transparent;
+      box-shadow: 0 12px 30px rgba(169,112,255,.22);
+    }
+
+    /* Layout */
+    .wrap{
+      height: calc(100% - 64px);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:14px;
+      padding:14px;
+    }
+
+    /* Stream panel */
+    .stream-panel{
+      background: rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .video-wrap{
+      position:relative;
+      background:#000;
+      aspect-ratio: 16 / 9;
+      width:100%;
+    }
+    video{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit: cover;
+      background:#000;
+    }
+    .video-overlay{
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.35), transparent 30%),
+        linear-gradient(0deg, rgba(0,0,0,.45), transparent 35%);
+    }
+    .live-badge{
+      position:absolute;
+      left:14px; top:14px;
+      display:flex; align-items:center; gap:8px;
+      background: rgba(0,0,0,.50);
+      border:1px solid rgba(255,255,255,.10);
+      padding:8px 10px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--bad);
+      box-shadow: 0 0 18px rgba(255,77,109,.55);
+      animation: pulse 1.1s infinite ease-in-out;
+    }
+    @keyframes pulse{
+      0%,100%{transform: scale(1); opacity: 1}
+      50%{transform: scale(.65); opacity: .6}
+    }
+    .live-text{
+      font-weight:700;
+      letter-spacing:.3px;
+      font-size:13px;
+    }
+    .stats{
+      position:absolute;
+      right:14px; top:14px;
+      display:flex; gap:10px;
+    }
+    .pill{
+      background: rgba(0,0,0,.50);
+      border:1px solid rgba(255,255,255,.10);
+      padding:8px 10px;
+      border-radius: 999px;
+      font-size:12px;
+      color: var(--muted);
+      backdrop-filter: blur(10px);
+      display:flex; gap:8px; align-items:center;
+      white-space:nowrap;
+    }
+    .pill b{color:var(--text); font-weight:700}
+    .bottom-bar{
+      position:absolute; left:14px; right:14px; bottom:14px;
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      pointer-events:none;
+    }
+    .quality{
+      pointer-events:none;
+      font-size:12px;
+      padding:8px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      backdrop-filter: blur(10px);
+    }
+    .stream-controls{
+      pointer-events:auto;
+      display:flex; gap:10px; align-items:center;
+    }
+    .iconbtn{
+      width:44px;height:44px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.35);
+      color: var(--text);
+      cursor:pointer;
+      display:grid; place-items:center;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      user-select:none;
+    }
+    .iconbtn:hover{transform: translateY(-1px); border-color: rgba(169,112,255,.40)}
+    .iconbtn.on{
+      border-color: rgba(25,230,166,.55);
+      box-shadow: 0 0 0 2px rgba(25,230,166,.12) inset;
+    }
+
+    .stream-meta{
+      padding:14px;
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      border-top:1px solid var(--line);
+      background: rgba(0,0,0,.15);
+    }
+    .avatar{
+      width:54px;height:54px;border-radius:16px;
+      background: linear-gradient(135deg, rgba(169,112,255,.8), rgba(25,230,166,.55));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 34px rgba(0,0,0,.45);
+      flex:0 0 auto;
+    }
+    .meta-text{min-width:0}
+    .title{
+      font-weight:800;
+      font-size:18px;
+      margin:0 0 4px 0;
+      line-height:1.2;
+    }
+    .subtitle{
+      margin:0;
+      color: var(--muted);
+      font-size:13px;
+    }
+    .meta-actions{
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    /* Chat */
+    .chat-panel{
+      background: rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .chat-head{
+      padding:12px 12px 10px 12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(10,10,14,.50);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .chat-head .h{
+      display:flex; flex-direction:column; gap:2px;
+      min-width:0;
+    }
+    .chat-head .h b{font-size:13px; letter-spacing:.2px}
+    .chat-head .h span{font-size:12px; color:var(--muted)}
+    .chat-tools{display:flex; gap:8px; align-items:center}
+    .smallbtn{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      cursor:pointer;
+      font-size:12px;
+    }
+
+    .chat-log{
+      padding:12px;
+      overflow:auto;
+      flex:1;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(169,112,255,.35) rgba(255,255,255,.04);
+    }
+    .chat-log::-webkit-scrollbar{width:10px}
+    .chat-log::-webkit-scrollbar-thumb{background: rgba(169,112,255,.30); border-radius: 999px}
+    .chat-log::-webkit-scrollbar-track{background: rgba(255,255,255,.04)}
+
+    .msg{
+      margin:0 0 10px 0;
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      line-height:1.25;
+      font-size:13px;
+      word-break: break-word;
+    }
+    .badge{
+      font-size:10px;
+      padding:3px 6px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      color: var(--muted);
+      margin-top:1px;
+      flex:0 0 auto;
+    }
+    .name{
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .name.mod{color: var(--good)}
+    .name.sub{color: var(--accent)}
+    .text{color: var(--text)}
+    .emote{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      margin:0 1px;
+    }
+
+    .chat-input{
+      border-top:1px solid var(--line);
+      padding:10px;
+      background: rgba(0,0,0,.15);
+    }
+    .chat-input form{
+      display:flex; gap:8px; align-items:center;
+    }
+    .chat-input input{
+      flex:1;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding:11px 12px;
+      border-radius: 14px;
+      outline:none;
+    }
+    .chat-input button{
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(135deg, rgba(169,112,255,.92), rgba(106,92,255,.92));
+      color:#fff;
+      padding:11px 12px;
+      cursor:pointer;
+      font-weight:800;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      body{overflow:auto}
+      .wrap{
+        height:auto;
+        grid-template-columns: 1fr;
+      }
+      .video-wrap{aspect-ratio: 16/10}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>Streamish</div>
+    </div>
+
+    <div class="search">
+      <input placeholder="Search channels, categories, videos..." />
+      <div class="hint">Ctrl K</div>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn" id="btnRequestCam">Enable Camera</button>
+      <button class="btn primary" id="btnGoLive">Go Live</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- STREAM -->
+    <section class="stream-panel">
+      <div class="video-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="video-overlay"></div>
+
+        <div class="live-badge">
+          <div class="dot" id="liveDot" style="opacity:.25; animation: none;"></div>
+          <div class="live-text" id="liveText" style="color: var(--muted);">OFFLINE</div>
+        </div>
+
+        <div class="stats">
+          <div class="pill">Viewers: <b id="viewers">0</b></div>
+          <div class="pill">Uptime: <b id="uptime">00:00:00</b></div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="quality">Source • 1080p • Low Latency</div>
+          <div class="stream-controls">
+            <button class="iconbtn on" id="btnMute" title="Mute (video element is muted by default)">🔇</button>
+            <button class="iconbtn on" id="btnCam" title="Toggle camera track">📷</button>
+            <button class="iconbtn" id="btnFlip" title="Mirror view">🪞</button>
+            <button class="iconbtn" id="btnTheater" title="Theater mode">🖥️</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stream-meta">
+        <div class="avatar" aria-hidden="true"></div>
+        <div class="meta-text">
+          <p class="title">Just Chatting — Webcam Test Stream</p>
+          <p class="subtitle">
+            Category: <span style="color:var(--text)">Just Chatting</span> •
+            Tags: <span style="color:var(--text)">Webcam</span>, <span style="color:var(--text)">Chill</span>, <span style="color:var(--text)">No Spoilers</span>
+          </p>
+        </div>
+        <div class="meta-actions">
+          <button class="btn">Follow</button>
+          <button class="btn">Subscribe</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <aside class="chat-panel">
+      <div class="chat-head">
+        <div class="h">
+          <b>Stream Chat</b>
+          <span id="chatStatus">Connecting…</span>
+        </div>
+        <div class="chat-tools">
+          <button class="smallbtn" id="btnSlow">Slow Mode: Off</button>
+          <button class="smallbtn" id="btnClear">Clear</button>
+        </div>
+      </div>
+
+      <div class="chat-log" id="chatLog" aria-live="polite"></div>
+
+      <div class="chat-input">
+        <form id="chatForm">
+          <input id="chatBox" placeholder="Send a message…" autocomplete="off" />
+          <button type="submit">Chat</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // ===== Webcam stream (your own camera) =====
+    const video = document.getElementById("video");
+    const btnRequestCam = document.getElementById("btnRequestCam");
+    const btnGoLive = document.getElementById("btnGoLive");
+    const btnCam = document.getElementById("btnCam");
+    const btnFlip = document.getElementById("btnFlip");
+    const btnTheater = document.getElementById("btnTheater");
+    const liveDot = document.getElementById("liveDot");
+    const liveText = document.getElementById("liveText");
+    const viewersEl = document.getElementById("viewers");
+    const uptimeEl = document.getElementById("uptime");
+
+    let mediaStream = null;
+    let isLive = false;
+    let uptimeStart = null;
+    let uptimeTimer = null;
+    let viewerTimer = null;
+    let mirrored = false;
+    let theater = false;
+
+    async function requestCamera(){
+      try{
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "user" },
+          audio: false
+        });
+        video.srcObject = mediaStream;
+        document.getElementById("chatStatus").textContent = "Connected";
+        addSystem("Camera connected. Click “Go Live” to start the vibe.");
+      }catch(err){
+        addSystem("Camera permission denied or unavailable. Try HTTPS or localhost.");
+        console.error(err);
+      }
+    }
+
+    function setLiveUI(on){
+      isLive = on;
+      if(on){
+        liveDot.style.opacity = "1";
+        liveDot.style.animation = "pulse 1.1s infinite ease-in-out";
+        liveText.textContent = "LIVE";
+        liveText.style.color = "var(--text)";
+      }else{
+        liveDot.style.opacity = ".25";
+        liveDot.style.animation = "none";
+        liveText.textContent = "OFFLINE";
+        liveText.style.color = "var(--muted)";
+        viewersEl.textContent = "0";
+        uptimeEl.textContent = "00:00:00";
+      }
+    }
+
+    function startUptime(){
+      uptimeStart = Date.now();
+      uptimeTimer = setInterval(()=>{
+        const s = Math.floor((Date.now() - uptimeStart)/1000);
+        const hh = String(Math.floor(s/3600)).padStart(2,"0");
+        const mm = String(Math.floor((s%3600)/60)).padStart(2,"0");
+        const ss = String(s%60).padStart(2,"0");
+        uptimeEl.textContent = `${hh}:${mm}:${ss}`;
+      }, 250);
+    }
+
+    function stopUptime(){
+      clearInterval(uptimeTimer);
+      uptimeTimer = null;
+    }
+
+    function startViewers(){
+      // Fake viewer count with gentle drift
+      let v = 12 + Math.floor(Math.random()*18);
+      viewersEl.textContent = String(v);
+      viewerTimer = setInterval(()=>{
+        const change = (Math.random() < 0.55 ? 1 : -1) * (1 + Math.floor(Math.random()*3));
+        v = Math.max(0, v + change);
+        viewersEl.textContent = String(v);
+      }, 1800);
+    }
+    function stopViewers(){
+      clearInterval(viewerTimer);
+      viewerTimer = null;
+    }
+
+    btnRequestCam.addEventListener("click", requestCamera);
+
+    btnGoLive.addEventListener("click", ()=>{
+      if(!mediaStream){
+        addSystem("Enable Camera first 👀");
+        return;
+      }
+      setLiveUI(!isLive);
+      if(isLive){
+        addSystem("🔴 You are LIVE.");
+        startUptime();
+        startViewers();
+      }else{
+        addSystem("Stream ended. Thanks for hanging out!");
+        stopUptime();
+        stopViewers();
+      }
+    });
+
+    btnCam.addEventListener("click", ()=>{
+      if(!mediaStream) return;
+      const track = mediaStream.getVideoTracks()[0];
+      track.enabled = !track.enabled;
+      btnCam.classList.toggle("on", track.enabled);
+      addSystem(track.enabled ? "Camera ON." : "Camera OFF.");
+    });
+
+    btnFlip.addEventListener("click", ()=>{
+      mirrored = !mirrored;
+      video.style.transform = mirrored ? "scaleX(-1)" : "none";
+      btnFlip.classList.toggle("on", mirrored);
+    });
+
+    btnTheater.addEventListener("click", ()=>{
+      theater = !theater;
+      document.querySelector(".wrap").style.gridTemplateColumns = theater ? "1fr 420px" : "1fr 360px";
+      btnTheater.classList.toggle("on", theater);
+    });
+
+    // ===== Chat simulator =====
+    const chatLog = document.getElementById("chatLog");
+    const chatForm = document.getElementById("chatForm");
+    const chatBox = document.getElementById("chatBox");
+    const btnSlow = document.getElementById("btnSlow");
+    const btnClear = document.getElementById("btnClear");
+
+    let slowMode = false;
+    let slowLock = false;
+
+    const names = [
+      ["MintyPog", "sub"],
+      ["LurkyMcLurk", ""],
+      ["ChatGoblin", ""],
+      ["ModBun", "mod"],
+      ["SwedeWave", ""],
+      ["KeyboardGremlin", ""],
+      ["VRChatter", ""],
+      ["PixelPupper", "sub"],
+      ["Kaffekokarn", ""],
+      ["NeonNoodle", ""]
+    ];
+
+    const emotes = ["Kappa", "Pog", "LUL", "peepoHappy", "WideHardo", "CatJam", "AYAYA", "monkaS"];
+    const phrases = [
+      "camera quality kinda crisp tho",
+      "W stream setup",
+      "chat moving fast today",
+      "drop the specs 👀",
+      "this looks like twitch fr",
+      "hello from Sweden 🇸🇪",
+      "anyone else vibing?",
+      "no thoughts just {emote}",
+      "{emote} {emote} {emote}",
+      "turn on slowmode pls",
+      "how do I get this overlay??",
+      "WE ARE SO BACK",
+      "this is cozy",
+      "mic check (but no mic 😭)",
+      "that lighting is clean",
+      "brb grabbing snacks"
+    ];
+
+    function escapeHTML(str){
+      return str.replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      }[c]));
+    }
+
+    function renderEmotes(text){
+      // Replace {emote} with random emote "pill"
+      return text.split("{emote}").map((part, i, arr)=>{
+        if(i === arr.length - 1) return escapeHTML(part);
+        const e = emotes[Math.floor(Math.random()*emotes.length)];
+        return escapeHTML(part) + `<span class="emote">${escapeHTML(e)}</span>`;
+      }).join("");
+    }
+
+    function addMessage(name, role, text){
+      const badge = role === "mod" ? "MOD" : (role === "sub" ? "SUB" : "CHAT");
+      const nameClass = role ? `name ${role}` : "name";
+      const html = `
+        <div class="msg">
+          <span class="badge">${badge}</span>
+          <span class="${nameClass}">${escapeHTML(name)}</span>
+          <span class="text">${renderEmotes(text)}</span>
+        </div>
+      `;
+      chatLog.insertAdjacentHTML("beforeend", html);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function addSystem(text){
+      const html = `
+        <div class="msg" style="opacity:.85">
+          <span class="badge">SYS</span>
+          <span class="name" style="color:var(--warn)">Streamish</span>
+          <span class="text" style="color:var(--muted)">${escapeHTML(text)}</span>
+        </div>
+      `;
+      chatLog.insertAdjacentHTML("beforeend", html);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function randomChatTick(){
+      const [n, role] = names[Math.floor(Math.random()*names.length)];
+      const raw = phrases[Math.floor(Math.random()*phrases.length)];
+      addMessage(n, role, raw);
+    }
+
+    // Start with some chat
+    addSystem("Welcome to chat!");
+    addMessage("ModBun","mod","Remember to be kind. No spoilers. Have fun! ✨");
+    addMessage("MintyPog","sub","first!! Pog");
+    addMessage("LurkyMcLurk","","lurking 👀");
+    document.getElementById("chatStatus").textContent = "Connected";
+
+    // Chat loop
+    setInterval(()=>{
+      // faster when live
+      const chance = isLive ? 0.85 : 0.45;
+      if(Math.random() < chance) randomChatTick();
+      if(isLive && Math.random() < 0.28) randomChatTick();
+    }, 900);
+
+    // User chat input
+    chatForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const value = chatBox.value.trim();
+      if(!value) return;
+
+      if(slowMode){
+        if(slowLock){
+          addSystem("Slow mode is on — wait a sec before sending again.");
+          return;
+        }
+        slowLock = true;
+        setTimeout(()=> slowLock = false, 2500);
+      }
+
+      addMessage("You","sub", value);
+      chatBox.value = "";
+
+      // "bot" reply occasionally
+      if(Math.random() < 0.35){
+        setTimeout(()=> addMessage("ChatGoblin","", "true " + (Math.random()<.5 ? "{emote}" : "lmao")), 650);
+      }
+    });
+
+    btnSlow.addEventListener("click", ()=>{
+      slowMode = !slowMode;
+      btnSlow.textContent = `Slow Mode: ${slowMode ? "On" : "Off"}`;
+      addSystem(slowMode ? "Slow mode enabled (2.5s)." : "Slow mode disabled.");
+    });
+
+    btnClear.addEventListener("click", ()=>{
+      chatLog.innerHTML = "";
+      addSystem("Chat cleared.");
+    });
+
+    // Keyboard shortcut (Ctrl+K) just for vibe
+    window.addEventListener("keydown", (e)=>{
+      if(e.ctrlKey && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        document.querySelector(".search input").focus();
+      }
+    });
+  </script>
+</body>
+</html>
