@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Keyboard Soundboard</title>
+  <style>
+    :root{
+      --bg1:#070010; --bg2:#001a1a;
+      --fg:rgba(255,255,255,.92);
+      --dim:rgba(255,255,255,.62);
+      --stroke:rgba(255,255,255,.14);
+      --glass:rgba(255,255,255,.06);
+      --glass2:rgba(255,255,255,.10);
+      --pad: 14px;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--fg);
+      background:
+        radial-gradient(900px 600px at 25% 20%, rgba(255,0,200,0.18), transparent 60%),
+        radial-gradient(900px 600px at 80% 25%, rgba(0,255,200,0.14), transparent 60%),
+        radial-gradient(900px 700px at 60% 95%, rgba(70,140,255,0.14), transparent 65%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap{
+      height:100%;
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: calc(env(safe-area-inset-top) + var(--pad)) var(--pad) calc(env(safe-area-inset-bottom) + var(--pad)) var(--pad);
+    }
+
+    header{
+      border:1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      border-radius: var(--radius);
+      padding: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .topline{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .title h1{
+      margin:0;
+      font-size: 16px;
+      letter-spacing:.3px;
+      line-height:1.15;
+    }
+    .title p{
+      margin:4px 0 0 0;
+      font-size: 12px;
+      color: var(--dim);
+    }
+
+    .controls{
+      margin-top: 10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      align-items:center;
+      justify-content:flex-start;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      user-select:none;
+      white-space:nowrap;
+    }
+    .pill label{
+      font-size:12px;
+      color: var(--dim);
+    }
+    .pill input[type="range"]{
+      width: 110px;
+      accent-color: white;
+    }
+
+    select{
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      color: var(--fg);
+      border-radius: 12px;
+      padding: 7px 10px;
+      outline: none;
+      font-size: 13px;
+    }
+
+    button{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.07);
+      color:var(--fg);
+      padding: 9px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-size: 13px;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+    button:hover { background: rgba(255,255,255,0.11); }
+    button:active { transform: translateY(1px); }
+
+    /* ===== stage box ===== */
+    main#stage{
+      position:relative;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      overflow:hidden;
+      min-height: 240px;
+    }
+    /* Make stage taller on big phones like S24 Ultra */
+    @media (min-width: 380px) and (max-width: 520px){
+      main#stage { min-height: 300px; }
+    }
+
+    canvas#fx{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      pointer-events:none;
+      z-index:1;
+    }
+
+    .log{
+      position:absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items:center;
+      pointer-events:none;
+      z-index:2;
+    }
+    .chip{
+      padding: 7px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.07);
+      font-size: 12px;
+      display:inline-flex;
+      gap: 8px;
+      align-items:center;
+      backdrop-filter: blur(8px);
+      animation: pop 200ms ease-out;
+    }
+    .chip b{ font-weight: 700; letter-spacing:.2px; }
+    .chip span{ color: rgba(255,255,255,0.65); }
+    @keyframes pop{
+      from { transform: translateY(6px) scale(.98); opacity:0; }
+      to { transform: translateY(0) scale(1); opacity:1; }
+    }
+
+    /* ===== keyboard ===== */
+    footer{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius);
+      padding: 10px;
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+
+    .hintRow{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.68);
+    }
+    .hintRow span:last-child{ color: rgba(255,255,255,0.52); }
+
+    /* Scroll container so keys don't become tiny on phones */
+    .kbScroll{
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+
+    .kb{
+      display:grid;
+      gap: 8px;
+      min-width: 640px; /* ensures readable keys on mobile; scroll instead of squish */
+    }
+
+    .row{
+      display:flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .k{
+      flex: 1 0 auto;
+      min-width: 44px;        /* thumb-friendly */
+      height: 54px;           /* tall tap target */
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.88);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+      cursor:pointer;
+      touch-action: manipulation;
+      user-select:none;
+      transition: transform 80ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    .k strong{ font-size: 14px; line-height: 1; }
+    .k small{ font-size: 10px; margin-top: 4px; color: rgba(255,255,255,0.55); }
+    .k:active{ transform: translateY(1px) scale(.99); }
+
+    .k.hit{
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .k .shine{
+      position:absolute;
+      inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 55%);
+      opacity:0;
+      transform: translateY(10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events:none;
+    }
+    .k.hit .shine{ opacity:1; transform: translateY(0); }
+
+    /* wider special keys */
+    .k.wide{ min-width: 140px; flex: 2 0 auto; }
+    .k.mid{ min-width: 92px; flex: 1.4 0 auto; }
+
+    /* tighter desktop spacing */
+    @media (min-width: 900px){
+      .wrap{ max-width: 980px; margin: 0 auto; }
+      .kb{ min-width: 0; }
+      .kbScroll{ overflow: visible; }
+      .row{ justify-content: center; }
+      .k{ min-width: 46px; }
+    }
+
+    /* prevent text selection/zoom weirdness */
+    input, select, button { font-size: 16px; } /* stops iOS zoom; ok on Android too */
+    @media (min-width: 700px){
+      input, select, button { font-size: 13px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="topline">
+        <div class="title">
+          <h1>⌨️ Keyboard Soundboard</h1>
+          <p>Vertical note lanes in the box. Lanes follow the key you press.</p>
+        </div>
+        <button id="panic" title="Stops all sound">Stop</button>
+      </div>
+
+      <div class="controls">
+        <div class="pill">
+          <label for="layout">Layout</label>
+          <select id="layout"></select>
+        </div>
+
+        <div class="pill">
+          <label for="sound">Sound</label>
+          <select id="sound">
+            <option value="synth">Synth (piano-ish)</option>
+            <option value="clicky">Clicky mechanical</option>
+            <option value="thock">Deep thock</option>
+            <option value="typewriter">Typewriter</option>
+            <option value="soft">Soft laptop key</option>
+          </select>
+        </div>
+
+        <div class="pill">
+          <label for="vol">Volume</label>
+          <input id="vol" type="range" min="0" max="1" step="0.01" value="0.65" />
+        </div>
+
+        <div class="pill">
+          <label for="wave">Wave</label>
+          <select id="wave">
+            <option value="sine">Sine</option>
+            <option value="triangle">Triangle</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Saw</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main id="stage">
+      <canvas id="fx"></canvas>
+      <div class="log" id="log"></div>
+    </main>
+
+    <footer>
+      <div class="hintRow">
+        <span>Tap keys • Space = stronger • Enter = chord/heavy hit</span>
+        <span>Scroll keyboard ↔ if needed</span>
+      </div>
+
+      <div class="kbScroll">
+        <div class="kb" id="kb"></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ===== Audio setup =====
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let master = null;
+    let noiseBuf = null;
+
+    const vol = document.getElementById("vol");
+    const wave = document.getElementById("wave");
+    const panic = document.getElementById("panic");
+    const layoutSelect = document.getElementById("layout");
+    const soundSelect = document.getElementById("sound");
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+        master = audioCtx.createGain();
+        master.gain.value = parseFloat(vol.value);
+        master.connect(audioCtx.destination);
+
+        const sr = audioCtx.sampleRate;
+        noiseBuf = audioCtx.createBuffer(1, sr, sr);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+    window.addEventListener("pointerdown", () => ensureAudio(), { once: true });
+
+    vol.addEventListener("input", () => { if (master) master.gain.value = parseFloat(vol.value); });
+
+    function stopAllSound() {
+      if (!audioCtx || !master) return;
+      const t = audioCtx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setTargetAtTime(0.0001, t, 0.02);
+      setTimeout(() => {
+        master.gain.setValueAtTime(parseFloat(vol.value), audioCtx.currentTime);
+      }, 120);
+    }
+    panic.addEventListener("click", stopAllSound);
+
+    function playSynth(freq, duration = 0.18, kind = "sine", accent = 1.0) {
+      ensureAudio();
+      const t = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      osc.type = kind;
+      osc.frequency.setValueAtTime(freq, t);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(Math.min(12000, freq * 8), t);
+
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.9 * accent, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+      osc.connect(filter);
+      filter.connect(g);
+      g.connect(master);
+
+      osc.start(t);
+      osc.stop(t + duration + 0.02);
+      osc.onended = () => { osc.disconnect(); g.disconnect(); filter.disconnect(); };
+    }
+
+    function playKeySound(style, seed = 0, accent = 1.0) {
+      ensureAudio();
+      const t = audioCtx.currentTime;
+
+      const n = audioCtx.createBufferSource();
+      n.buffer = noiseBuf;
+
+      const g = audioCtx.createGain();
+      const hp = audioCtx.createBiquadFilter();
+      const lp = audioCtx.createBiquadFilter();
+      const peak = audioCtx.createBiquadFilter();
+
+      const v = (seed % 97) / 97;
+      const rand01 = (Math.sin(seed * 999) * 0.5 + 0.5);
+
+      hp.type = "highpass";
+      lp.type = "lowpass";
+      peak.type = "peaking";
+      peak.Q.value = 6;
+
+      let attack = 0.001;
+      let decay = 0.04;
+      let gainAmt = 0.8 * accent;
+
+      if (style === "clicky") {
+        hp.frequency.setValueAtTime(1800 + v * 1400, t);
+        lp.frequency.setValueAtTime(9000, t);
+        peak.frequency.setValueAtTime(3200 + v * 1600, t);
+        peak.gain.setValueAtTime(6, t);
+        decay = 0.03 + v * 0.02;
+        gainAmt = 0.75 * accent;
+      } else if (style === "thock") {
+        hp.frequency.setValueAtTime(120 + v * 120, t);
+        lp.frequency.setValueAtTime(1400 + v * 700, t);
+        peak.frequency.setValueAtTime(220 + v * 180, t);
+        peak.gain.setValueAtTime(8, t);
+        decay = 0.07 + v * 0.05;
+        gainAmt = 0.95 * accent;
+      } else if (style === "typewriter") {
+        hp.frequency.setValueAtTime(900 + v * 1200, t);
+        lp.frequency.setValueAtTime(8000, t);
+        peak.frequency.setValueAtTime(2400 + v * 2200, t);
+        peak.gain.setValueAtTime(10, t);
+        decay = 0.045 + v * 0.03;
+        gainAmt = 0.85 * accent;
+      } else if (style === "soft") {
+        hp.frequency.setValueAtTime(250 + v * 250, t);
+        lp.frequency.setValueAtTime(2200 + v * 900, t);
+        peak.frequency.setValueAtTime(900 + v * 600, t);
+        peak.gain.setValueAtTime(4, t);
+        decay = 0.06 + v * 0.05;
+        gainAmt = 0.6 * accent;
+      }
+
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gainAmt), t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+
+      n.connect(hp);
+      hp.connect(peak);
+      peak.connect(lp);
+      lp.connect(g);
+      g.connect(master);
+
+      if (style === "typewriter" || style === "clicky") {
+        const osc = audioCtx.createOscillator();
+        const og = audioCtx.createGain();
+        const pingFreq = 1800 + v * 1600;
+
+        osc.type = "square";
+        osc.frequency.setValueAtTime(pingFreq, t);
+
+        og.gain.setValueAtTime(0.0001, t);
+        og.gain.exponentialRampToValueAtTime(0.18 * accent, t + 0.002);
+        og.gain.exponentialRampToValueAtTime(0.0001, t + 0.03 + rand01 * 0.02);
+
+        osc.connect(og);
+        og.connect(master);
+
+        osc.start(t);
+        osc.stop(t + 0.08);
+        osc.onended = () => { osc.disconnect(); og.disconnect(); };
+      }
+
+      n.start(t);
+      n.stop(t + 0.12);
+      n.onended = () => { n.disconnect(); g.disconnect(); hp.disconnect(); lp.disconnect(); peak.disconnect(); };
+    }
+
+    // ===== Musical mapping =====
+    const scaleSteps = [0,2,4,7,9,12,14,16,19,21,24];
+    function keyToFreq(code, boost=0){
+      const base = 57;
+      const idx = (code + boost) % scaleSteps.length;
+      const oct = Math.floor(((code + boost) % 48) / 12);
+      const semis = scaleSteps[idx] + oct*12;
+
+      const a4 = 440;
+      const a4Semis = 69;
+      const midi = base + semis;
+      return a4 * Math.pow(2, (midi - a4Semis) / 12);
+    }
+
+    // ===== Stage + FX =====
+    const stage = document.getElementById("stage");
+    const canvas = document.getElementById("fx");
+    const ctx2d = canvas.getContext("2d");
+    const log = document.getElementById("log");
+
+    let W=0, H=0;
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+    function resize(){
+      const rect = stage.getBoundingClientRect();
+      W = Math.floor(rect.width);
+      H = Math.floor(rect.height);
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      ctx2d.setTransform(DPR,0,0,DPR,0,0);
+    }
+    window.addEventListener("resize", resize);
+    new ResizeObserver(resize).observe(stage);
+    resize();
+
+    const notesGlyphs = ["♪","♫","♩","♬","𝄞"];
+    const particles = [];
+    const rand = (a,b)=> a + Math.random()*(b-a);
+    const clamp = (n,a,b)=> Math.max(a, Math.min(b,n));
+
+    function spawnPointAboveKey(el){
+      const keyRect = el.getBoundingClientRect();
+      const stageRect = stage.getBoundingClientRect();
+      const x = clamp((keyRect.left + keyRect.width/2) - stageRect.left, 0, W);
+      const y = H - 22;
+      return { x, y };
+    }
+
+    // Vertical lanes: no drift; gentle sway around lane center
+    function spawnFX(x,y,strength=1){
+      const glyph = notesGlyphs[(Math.random()*notesGlyphs.length)|0];
+      const hue = (performance.now()/30 + x/4) % 360;
+
+      particles.push({
+        type:"note",
+        baseX:x, x, y,
+        vy: rand(-150, -230) * strength,
+        life: 1.0,
+        size: rand(16, 28) * strength,
+        rot: rand(-0.35, 0.35),
+        vr: rand(-1,1) * 0.7,
+        hue, glyph,
+        swayAmp: rand(3,10) * strength,
+        swaySpeed: rand(3,6),
+        swayPhase: rand(0, Math.PI*2)
+      });
+
+      particles.push({ type:"ripple", x, y, r:0, life:1.0, hue });
+
+      const n = Math.floor(rand(7, 12) * strength);
+      for(let i=0;i<n;i++){
+        particles.push({
+          type:"spark",
+          x, y,
+          vx: rand(-1,1) * 120 * strength,
+          vy: rand(-1,1) * 120 * strength,
+          life: 1.0,
+          size: rand(2,4) * strength,
+          hue: (hue + rand(-20,20) + 360) % 360
+        });
+      }
+    }
+
+    function draw(){
+      ctx2d.clearRect(0,0,W,H);
+
+      // grid
+      ctx2d.save();
+      ctx2d.globalAlpha = 0.06;
+      const step = 44;
+      ctx2d.beginPath();
+      for(let x=0;x<W;x+=step){ ctx2d.moveTo(x,0); ctx2d.lineTo(x,H); }
+      for(let y=0;y<H;y+=step){ ctx2d.moveTo(0,y); ctx2d.lineTo(W,y); }
+      ctx2d.strokeStyle = "white";
+      ctx2d.lineWidth = 1;
+      ctx2d.stroke();
+      ctx2d.restore();
+
+      const now = performance.now()/1000;
+      const dt = 1/60;
+
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i];
+        p.life -= dt * 1.25;
+
+        if(p.type==="note"){
+          p.y += p.vy * dt;
+          p.vy += 40 * dt;
+          p.rot += p.vr * dt;
+
+          const sway = Math.sin(now*p.swaySpeed + p.swayPhase) * p.swayAmp * p.life;
+          p.x = p.baseX + sway;
+
+          const a = Math.max(0,p.life);
+          ctx2d.save();
+          ctx2d.translate(p.x,p.y);
+          ctx2d.rotate(p.rot);
+          ctx2d.globalAlpha = a;
+          ctx2d.font = `700 ${p.size}px ui-sans-serif, system-ui`;
+          ctx2d.fillStyle = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.shadowColor = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.shadowBlur = 18;
+          ctx2d.fillText(p.glyph, 0, 0);
+          ctx2d.restore();
+        }
+
+        if(p.type==="spark"){
+          p.x += p.vx*dt; p.y += p.vy*dt;
+          p.vx *= 0.98; p.vy *= 0.98;
+
+          const a = Math.max(0,p.life);
+          ctx2d.save();
+          ctx2d.globalAlpha = a;
+          ctx2d.fillStyle = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.shadowColor = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.shadowBlur = 14;
+          ctx2d.beginPath();
+          ctx2d.arc(p.x,p.y,p.size,0,Math.PI*2);
+          ctx2d.fill();
+          ctx2d.restore();
+        }
+
+        if(p.type==="ripple"){
+          p.r += 240*dt;
+          const a = Math.max(0,p.life) * 0.6;
+          ctx2d.save();
+          ctx2d.globalAlpha = a;
+          ctx2d.strokeStyle = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.lineWidth = 2;
+          ctx2d.shadowColor = `hsla(${p.hue},95%,70%,1)`;
+          ctx2d.shadowBlur = 10;
+          ctx2d.beginPath();
+          ctx2d.arc(p.x,p.y,p.r,0,Math.PI*2);
+          ctx2d.stroke();
+          ctx2d.restore();
+        }
+
+        if(p.life <= 0) particles.splice(i,1);
+      }
+
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+
+    // ===== UI log =====
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+    function addChip(label, extra){
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = `<b>${escapeHtml(label)}</b><span>${escapeHtml(extra)}</span>`;
+      log.prepend(chip);
+      while(log.children.length>9) log.removeChild(log.lastChild);
+      setTimeout(()=>chip.remove(), 1700);
+    }
+
+    // ===== Layouts =====
+    const kb = document.getElementById("kb");
+
+    const LAYOUTS = {
+      us_qwerty: { name:"US (QWERTY)", rows:[
+        ["1","2","3","4","5","6","7","8","9","0","-","="],
+        ["Q","W","E","R","T","Y","U","I","O","P","[","]"],
+        ["A","S","D","F","G","H","J","K","L",";","'"],
+        ["Z","X","C","V","B","N","M",",",".","/"],
+        ["Space","Enter"]
+      ]},
+      nordic_sv: { name:"Nordic (Swedish)", rows:[
+        ["1","2","3","4","5","6","7","8","9","0","+","´"],
+        ["Q","W","E","R","T","Y","U","I","O","P","Å","¨"],
+        ["A","S","D","F","G","H","J","K","L","Ö","Ä"],
+        ["Z","X","C","V","B","N","M",",",".","-"],
+        ["Space","Enter"]
+      ]},
+      fr_azerty: { name:"French (AZERTY)", rows:[
+        ["&","é","\"","'","(","-","è","_","ç","à",")","="],
+        ["A","Z","E","R","T","Y","U","I","O","P","^","$"],
+        ["Q","S","D","F","G","H","J","K","L","M","ù"],
+        ["W","X","C","V","B","N",",",";",";",":"],
+        ["Space","Enter"]
+      ]},
+      de_qwertz: { name:"German (QWERTZ)", rows:[
+        ["1","2","3","4","5","6","7","8","9","0","ß","´"],
+        ["Q","W","E","R","T","Z","U","I","O","P","Ü","+"],
+        ["A","S","D","F","G","H","J","K","L","Ö","Ä","#"],
+        ["Y","X","C","V","B","N","M",",",".","-"],
+        ["Space","Enter"]
+      ]}
+    };
+
+    (function initLayoutDropdown(){
+      const saved = localStorage.getItem("kp_layout") || "us_qwerty";
+      layoutSelect.innerHTML = "";
+      for(const [id,def] of Object.entries(LAYOUTS)){
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = def.name;
+        layoutSelect.appendChild(opt);
+      }
+      layoutSelect.value = LAYOUTS[saved] ? saved : "us_qwerty";
+    })();
+
+    function normalizeLabel(label){
+      if(label==="Space") return { key:" ", ui:"SPACE", code:32, wide:"wide" };
+      if(label==="Enter") return { key:"Enter", ui:"ENTER", code:13, wide:"mid" };
+      return { key:label, ui:label, code:label.charCodeAt(0), wide:"" };
+    }
+
+    function flashKey(uiLabel){
+      const t = document.querySelector(`.k[data-key="${CSS.escape(uiLabel==="SPACE" ? "Space" : uiLabel)}"]`) ||
+                document.querySelector(`.k[data-key="${CSS.escape(String(uiLabel).toUpperCase())}"]`);
+      if(!t) return;
+      t.classList.add("hit");
+      setTimeout(()=>t.classList.remove("hit"), 120);
+    }
+
+    function findKeyElementForKeyboardEvent(e){
+      if(e.key===" ") return document.querySelector('.k[data-key="Space"]');
+      if(e.key==="Enter") return document.querySelector('.k[data-key="Enter"]');
+      const s = (e.key && e.key.length===1) ? e.key.toUpperCase() : null;
+      if(!s) return null;
+      return document.querySelector(`.k[data-key="${CSS.escape(s)}"]`) ||
+             document.querySelector(`.k[data-key="${CSS.escape(e.key)}"]`);
+    }
+
+    function triggerKeyAction({ code, key, uiLabel, keyElForX }){
+      const accent = (key===" " ? 1.35 : (key==="Enter" ? 1.15 : 1.0));
+
+      let x = W * 0.5, y = H - 22;
+      if(keyElForX){
+        const p = spawnPointAboveKey(keyElForX);
+        x = p.x; y = p.y;
+      }
+
+      const mode = soundSelect.value;
+      if(mode === "synth"){
+        if(key === "Enter"){
+          const f1 = keyToFreq(code,0), f2 = keyToFreq(code,3), f3 = keyToFreq(code,7);
+          playSynth(f1, 0.22, wave.value, accent);
+          playSynth(f2, 0.22, wave.value, accent);
+          playSynth(f3, 0.22, wave.value, accent);
+          addChip("ENTER", "chord");
+        } else {
+          const freq = keyToFreq(code,0);
+          playSynth(freq, (key===" " ? 0.26 : 0.18), wave.value, accent);
+          addChip(uiLabel, `${Math.round(freq)} Hz`);
+        }
+      } else {
+        if(key==="Enter"){
+          playKeySound(mode, code + 777, 1.4);
+          playKeySound(mode, code + 999, 0.9);
+          addChip("ENTER", mode);
+        } else {
+          playKeySound(mode, code, accent);
+          addChip(uiLabel, mode);
+        }
+      }
+
+      spawnFX(x, y, accent);
+      flashKey(uiLabel);
+    }
+
+    const down = new Set();
+    window.addEventListener("keydown",(e)=>{
+      if(e.ctrlKey||e.altKey||e.metaKey) return;
+      const id = e.code || e.key;
+      if(down.has(id)) return;
+      down.add(id);
+
+      if(e.key===" ") e.preventDefault();
+
+      const uiLabel = (e.key===" ") ? "SPACE" :
+        (e.key && e.key.length===1 ? e.key.toUpperCase() : (e.key || "KEY"));
+
+      const keyEl = findKeyElementForKeyboardEvent(e);
+      triggerKeyAction({ code:(e.keyCode||e.which||0), key:e.key, uiLabel, keyElForX:keyEl });
+    });
+    window.addEventListener("keyup",(e)=> down.delete(e.code||e.key));
+
+    function makeKey(label){
+      const info = normalizeLabel(label);
+      const el = document.createElement("div");
+      el.className = "k" + (info.wide ? " " + info.wide : "");
+      el.dataset.key = label;
+
+      const shown = (label==="Space") ? "␣" : label;
+      el.innerHTML = `<strong>${escapeHtml(shown)}</strong><small>${escapeHtml(label)}</small><div class="shine"></div>`;
+
+      el.addEventListener("pointerdown", ()=>{
+        ensureAudio();
+        triggerKeyAction({ code:info.code, key:info.key, uiLabel:info.ui, keyElForX:el });
+      });
+
+      return el;
+    }
+
+    function renderKeyboard(layoutId){
+      const def = LAYOUTS[layoutId] || LAYOUTS.us_qwerty;
+      kb.innerHTML = "";
+      for(let r=0;r<def.rows.length;r++){
+        const row = document.createElement("div");
+        row.className = "row";
+        // hide number row on very small widths if you want; keep it for S24 ultra
+        for(const key of def.rows[r]) row.appendChild(makeKey(key));
+        kb.appendChild(row);
+      }
+    }
+
+    layoutSelect.addEventListener("change", ()=>{
+      localStorage.setItem("kp_layout", layoutSelect.value);
+      renderKeyboard(layoutSelect.value);
+    });
+
+    renderKeyboard(layoutSelect.value);
+  </script>
+</body>
+</html>
