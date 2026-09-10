@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Little Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --rose: #ff4d6d;
+      --deep: #c9184a;
+      --ink: #3d1f2b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: "Nunito", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #ffe0ea 0%, transparent 55%),
+        radial-gradient(900px 500px at 110% 10%, #ffd1c1 0%, transparent 50%),
+        radial-gradient(800px 500px at 50% 120%, #ffc2d1 0%, transparent 50%),
+        linear-gradient(180deg, #fff7f3 0%, #ffe9ef 100%);
+      overflow-x: hidden;
+    }
+
+    .bg-hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .bg-hearts span {
+      position: absolute; font-size: 1.4rem; opacity: 0.18;
+      animation: drift 18s linear infinite;
+    }
+    @keyframes drift {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-120vh) rotate(40deg); }
+    }
+
+    .wrap {
+      position: relative; z-index: 1; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; padding: 36px 20px 56px;
+    }
+
+    header { text-align: center; margin-bottom: 22px; }
+    h1 {
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: clamp(2.2rem, 7vw, 3.6rem);
+      letter-spacing: -0.02em; color: var(--deep);
+    }
+    .subtitle { margin-top: 8px; font-size: 1.05rem; color: #8a5060; font-weight: 600; }
+
+    .board {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 32px;
+      padding: 28px 22px 20px;
+      box-shadow: 0 20px 50px rgba(201, 24, 74, 0.12), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+      text-align: center;
+      position: relative;
+    }
+
+    .count-label {
+      font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: #b06b7c; font-weight: 800;
+    }
+    .count {
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: clamp(3.6rem, 10vw, 5.4rem);
+      line-height: 1; color: var(--rose); margin: 6px 0 4px;
+      transition: transform 0.18s ease;
+    }
+    .count.pop { transform: scale(1.12); }
+    .message { min-height: 1.4em; margin: 8px 0 18px; color: #7a4454; font-weight: 700; }
+
+    .hug-btn, .primary-btn, .add-btn {
+      appearance: none; border: none; cursor: pointer; width: 100%;
+      padding: 16px 18px 18px; border-radius: 999px;
+      background: linear-gradient(180deg, #ff7a96 0%, #ff4d6d 55%, #e5385b 100%);
+      color: white; font-family: inherit; font-size: 1.15rem; font-weight: 800;
+      box-shadow: 0 12px 24px rgba(255, 77, 109, 0.35), 0 2px 0 rgba(255, 255, 255, 0.35) inset;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+    .hug-btn:hover, .primary-btn:hover, .add-btn:hover { transform: translateY(-2px); filter: brightness(1.04); }
+    .hug-btn:active, .primary-btn:active, .add-btn:active { transform: translateY(2px) scale(0.98); }
+    .hug-btn:focus-visible, .primary-btn:focus-visible, .add-btn:focus-visible,
+    .text-input:focus-visible, .ghost-btn:focus-visible, .reset:focus-visible {
+      outline: 3px solid #ffb3c1; outline-offset: 4px;
+    }
+
+    .actions {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 14px; gap: 12px;
+    }
+    .next { font-size: 0.88rem; color: #8a5060; font-weight: 700; text-align: left; }
+    .reset, .change-btn, .remove-btn {
+      background: none; border: none; color: #b06b7c; font-family: inherit;
+      font-weight: 800; font-size: 0.82rem; cursor: pointer;
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+    .reset:hover, .change-btn:hover, .remove-btn:hover { color: var(--deep); }
+    .toolbar { display: flex; justify-content: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+
+    .add-card {
+      min-height: 280px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      background: rgba(255,255,255,0.46); border-style: dashed; border-color: #ffc2d1;
+    }
+    .add-btn { width: auto; padding: 14px 22px 16px; }
+    .add-hint { color: #8a5060; font-weight: 700; font-size: 0.92rem; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 28px;
+      transform: translateX(-50%) translateY(20px);
+      background: #3d1f2b; color: #fff; padding: 12px 18px; border-radius: 999px;
+      font-weight: 800; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease; z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .burst { position: absolute; pointer-events: none; font-size: 1.4rem; animation: float-up 0.8s ease-out forwards; }
+    @keyframes float-up {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+      100% { opacity: 0; transform: translate(-50%, -140%) scale(1.3); }
+    }
+
+    footer { margin-top: 28px; color: #b06b7c; font-size: 0.85rem; font-weight: 700; }
+
+    .splash {
+      position: fixed; inset: 0; z-index: 10; display: flex;
+      align-items: center; justify-content: center; padding: 24px;
+      background:
+        radial-gradient(900px 500px at 20% 0%, rgba(255, 224, 234, 0.95) 0%, transparent 55%),
+        rgba(255, 246, 240, 0.86);
+      backdrop-filter: blur(18px);
+      opacity: 0; pointer-events: none; transform: scale(1.02);
+      transition: opacity 0.28s ease, transform 0.28s ease;
+    }
+    .splash.open { opacity: 1; pointer-events: auto; transform: scale(1); }
+    .splash-card {
+      width: min(460px, 100%); background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 32px;
+      padding: 34px 28px 26px; box-shadow: 0 24px 60px rgba(201, 24, 74, 0.14);
+      text-align: center;
+    }
+    .splash-kicker { font-size: 0.8rem; letter-spacing: 0.18em; text-transform: uppercase; color: #b06b7c; font-weight: 800; margin-bottom: 8px; }
+    .splash-card h2 { font-family: "Playfair Display", Georgia, serif; font-size: clamp(1.8rem, 6vw, 2.5rem); color: var(--deep); margin-bottom: 8px; }
+    .splash-copy { color: #8a5060; font-weight: 600; margin-bottom: 22px; }
+    .text-input {
+      width: 100%; border: 2px solid #ffd0da; background: #fff; border-radius: 18px;
+      padding: 16px; font-family: inherit; font-size: 1.15rem; font-weight: 800;
+      color: var(--ink); text-align: center; margin-bottom: 14px;
+    }
+    .suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
+    .chip { border: 1px solid #ffc2d1; background: #fff; color: #8a5060; border-radius: 999px; padding: 8px 12px; font-family: inherit; font-size: 0.85rem; font-weight: 800; cursor: pointer; }
+    .chip:hover, .chip.active { background: #ffe4eb; color: var(--deep); }
+    .ghost-btn { margin-top: 12px; background: none; border: none; color: #b06b7c; font-family: inherit; font-weight: 800; cursor: pointer; }
+    .app { display: none; }
+    .app.ready { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="bg-hearts" id="bgHearts" aria-hidden="true"></div>
+
+  <section class="splash open" id="splash">
+    <form class="splash-card" id="setupForm">
+      <p class="splash-kicker" id="splashKicker">Welcome</p>
+      <h2 id="splashTitle">What do you want to track?</h2>
+      <p class="splash-copy" id="splashCopy">Type anything. You can add more trackers after this.</p>
+      <input class="text-input" id="itemInput" type="text" maxlength="40" placeholder="hugs" autocomplete="off" required />
+      <div class="suggestions" id="suggestions"></div>
+      <button class="primary-btn" type="submit" id="startBtn">Start tracking</button>
+      <button class="ghost-btn" type="button" id="cancelSetup" hidden>Keep current</button>
+    </form>
+  </section>
+
+  <main class="wrap app" id="app">
+    <header>
+      <h1>Little Tracker</h1>
+      <p class="subtitle">Keep as many counters as you like on one screen.</p>
+    </header>
+    <section class="board" id="board"></section>
+    <footer>Saved on this device · comes back next time</footer>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const STORAGE_KEY = "little-tracker-state-v2";
+    const LEGACY_KEY = "little-tracker-state-v1";
+    const LEGACY_COUNT_KEY = "hug-tracker-count";
+    const SUGGESTIONS = ["hugs", "smiles", "glasses of water", "pages", "deep breaths", "kind words"];
+    const MESSAGES = [
+      "Nice. That one counted.",
+      "Keep the streak alive.",
+      "Small taps, big habit.",
+      "You're doing great.",
+      "Another one in the book.",
+      "Soft progress is still progress."
+    ];
+
+    const splash = document.getElementById("splash");
+    const setupForm = document.getElementById("setupForm");
+    const itemInput = document.getElementById("itemInput");
+    const suggestionsEl = document.getElementById("suggestions");
+    const startBtn = document.getElementById("startBtn");
+    const cancelSetup = document.getElementById("cancelSetup");
+    const splashKicker = document.getElementById("splashKicker");
+    const splashTitle = document.getElementById("splashTitle");
+    const splashCopy = document.getElementById("splashCopy");
+    const app = document.getElementById("app");
+    const board = document.getElementById("board");
+    const toastEl = document.getElementById("toast");
+
+    let splashMode = "create";
+    let editingId = null;
+
+    function uid() {
+      return "t_" + Math.random().toString(36).slice(2, 9);
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.trackers)) return parsed;
+        }
+      } catch (e) {}
+
+      try {
+        const old = JSON.parse(localStorage.getItem(LEGACY_KEY) || "null");
+        if (old && old.item) {
+          return {
+            trackers: [{ id: uid(), item: old.item, count: Number(old.counts?.[old.item.toLowerCase()] || 0) }]
+          };
+        }
+      } catch (e) {}
+
+      const legacy = Number.parseInt(localStorage.getItem(LEGACY_COUNT_KEY), 10);
+      if (Number.isFinite(legacy) && legacy > 0) {
+        return { trackers: [{ id: uid(), item: "hugs", count: legacy }] };
+      }
+      return { trackers: [] };
+    }
+
+    const state = loadState();
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function normalizeItem(value) {
+      return value.trim().replace(/\s+/g, " ");
+    }
+
+    function plural(n, word) {
+      if (n === 1) {
+        if (word.endsWith("s") && !word.endsWith("ss") && word.split(" ").length === 1) {
+          return word.slice(0, -1);
+        }
+        return word;
+      }
+      if (word.endsWith("s") || word.split(" ").length > 1) return word;
+      return word + "s";
+    }
+
+    function titleCase(word) {
+      return word.replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    function nextMilestone(n) {
+      return Math.ceil((n + 1) / 10) * 10;
+    }
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      window.setTimeout(() => toastEl.classList.remove("show"), 2200);
+    }
+
+    function fireConfetti() {
+      const defaults = { origin: { y: 0.7 }, spread: 70, ticks: 200 };
+      confetti({ ...defaults, particleCount: 80, scalar: 1.1 });
+      confetti({ ...defaults, particleCount: 40, spread: 100, colors: ["#ff4d6d", "#ff8fab", "#ffd166", "#fff"] });
+      window.setTimeout(() => {
+        confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.7 } });
+        confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } });
+      }, 180);
+    }
+
+    function openSplash(mode, tracker) {
+      splashMode = mode;
+      editingId = tracker ? tracker.id : null;
+      splash.classList.add("open");
+      const editing = mode === "edit";
+      const adding = mode === "add";
+      splashKicker.textContent = editing ? "Update" : adding ? "Add another" : "Welcome";
+      splashTitle.textContent = editing ? "Rename this tracker" : "What do you want to track?";
+      splashCopy.textContent = adding
+        ? "This new tracker will sit next to the others."
+        : editing
+          ? "Change the name. The count stays."
+          : "Type anything. You can add more trackers after this.";
+      startBtn.textContent = editing ? "Save name" : adding ? "Add tracker" : "Start tracking";
+      cancelSetup.hidden = mode === "create" && state.trackers.length === 0;
+      itemInput.value = tracker ? tracker.item : "";
+      highlightSuggestion(itemInput.value);
+      window.setTimeout(() => { itemInput.focus(); itemInput.select(); }, 80);
+    }
+
+    function closeSplash() {
+      splash.classList.remove("open");
+    }
+
+    function highlightSuggestion(value) {
+      const key = (value || "").trim().toLowerCase();
+      suggestionsEl.querySelectorAll(".chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.value === key);
+      });
+    }
+
+    function render() {
+      board.innerHTML = "";
+      state.trackers.forEach((tracker) => board.appendChild(makeCard(tracker)));
+
+      const addCard = document.createElement("section");
+      addCard.className = "card add-card";
+      addCard.innerHTML = `
+        <p class="add-hint">Want another counter?</p>
+        <button class="add-btn" type="button">+ Add tracker</button>
+      `;
+      addCard.querySelector(".add-btn").addEventListener("click", () => openSplash("add"));
+      board.appendChild(addCard);
+
+      if (state.trackers.length) {
+        app.classList.add("ready");
+      }
+    }
+
+    function makeCard(tracker) {
+      const card = document.createElement("section");
+      card.className = "card";
+      card.dataset.id = tracker.id;
+      const next = nextMilestone(tracker.count);
+      card.innerHTML = `
+        <p class="count-label">${titleCase(tracker.item)} so far</p>
+        <div class="count">${tracker.count}</div>
+        <p class="message">${tracker.count === 0 ? "Start with the first " + plural(1, tracker.item) + "." : MESSAGES[tracker.count % MESSAGES.length]}</p>
+        <button class="hug-btn" type="button">Add a ${plural(1, tracker.item)}</button>
+        <div class="actions">
+          <p class="next">${tracker.count > 0 && tracker.count % 10 === 0 ? "You just hit a milestone!" : "Next celebration at " + next + " " + plural(next, tracker.item)}</p>
+          <button class="reset" type="button">Reset</button>
+        </div>
+        <div class="toolbar">
+          <button class="change-btn" type="button">Rename</button>
+          <button class="remove-btn" type="button">Remove</button>
+        </div>
+      `;
+
+      const countEl = card.querySelector(".count");
+      const messageEl = card.querySelector(".message");
+      const nextEl = card.querySelector(".next");
+      const btn = card.querySelector(".hug-btn");
+
+      btn.addEventListener("click", (event) => {
+        tracker.count += 1;
+        saveState();
+        countEl.textContent = tracker.count;
+        countEl.classList.add("pop");
+        window.setTimeout(() => countEl.classList.remove("pop"), 180);
+        messageEl.textContent = MESSAGES[tracker.count % MESSAGES.length];
+        const nxt = nextMilestone(tracker.count);
+        nextEl.textContent = tracker.count % 10 === 0
+          ? "You just hit a milestone!"
+          : "Next celebration at " + nxt + " " + plural(nxt, tracker.item);
+
+        const span = document.createElement("span");
+        span.className = "burst";
+        span.textContent = ["💛", "💗", "✨", "💞", "🌟"][Math.floor(Math.random() * 5)];
+        const rect = card.getBoundingClientRect();
+        span.style.left = (event.clientX - rect.left) + "px";
+        span.style.top = (event.clientY - rect.top) + "px";
+        card.appendChild(span);
+        window.setTimeout(() => span.remove(), 800);
+
+        if (tracker.count % 10 === 0) {
+          fireConfetti();
+          const line = tracker.count + " " + plural(tracker.count, tracker.item) + "! Keep going.";
+          messageEl.textContent = line;
+          showToast(line);
+        }
+      });
+
+      card.querySelector(".reset").addEventListener("click", () => {
+        if (!confirm("Reset this count to zero?")) return;
+        tracker.count = 0;
+        saveState();
+        render();
+      });
+
+      card.querySelector(".change-btn").addEventListener("click", () => openSplash("edit", tracker));
+
+      card.querySelector(".remove-btn").addEventListener("click", () => {
+        if (state.trackers.length === 1) {
+          if (!confirm("Remove the last tracker? You'll see the setup screen again.")) return;
+        } else if (!confirm("Remove this tracker?")) return;
+        state.trackers = state.trackers.filter((t) => t.id !== tracker.id);
+        saveState();
+        if (!state.trackers.length) {
+          app.classList.remove("ready");
+          openSplash("create");
+        } else {
+          render();
+        }
+      });
+
+      return card;
+    }
+
+    SUGGESTIONS.forEach((label) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.dataset.value = label;
+      chip.textContent = label;
+      chip.addEventListener("click", () => {
+        itemInput.value = label;
+        highlightSuggestion(label);
+        itemInput.focus();
+      });
+      suggestionsEl.appendChild(chip);
+    });
+
+    itemInput.addEventListener("input", () => highlightSuggestion(itemInput.value));
+
+    setupForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const item = normalizeItem(itemInput.value);
+      if (!item) return;
+
+      if (splashMode === "edit" && editingId) {
+        const tracker = state.trackers.find((t) => t.id === editingId);
+        if (tracker) tracker.item = item;
+      } else {
+        state.trackers.push({ id: uid(), item, count: 0 });
+      }
+      saveState();
+      closeSplash();
+      render();
+      showToast(splashMode === "edit" ? "Renamed to " + item : "Tracking " + item);
+    });
+
+    cancelSetup.addEventListener("click", () => {
+      if (!state.trackers.length) return;
+      closeSplash();
+      render();
+    });
+
+    const hearts = document.getElementById("bgHearts");
+    ["♡", "♥", "❀", "✦"].forEach((glyph, i) => {
+      for (let n = 0; n < 4; n += 1) {
+        const span = document.createElement("span");
+        span.textContent = glyph;
+        span.style.left = Math.random() * 100 + "%";
+        span.style.top = Math.random() * 100 + "%";
+        span.style.animationDuration = 12 + Math.random() * 16 + "s";
+        span.style.animationDelay = -Math.random() * 18 + "s";
+        span.style.fontSize = 0.9 + Math.random() * 1.4 + "rem";
+        hearts.appendChild(span);
+      }
+    });
+
+    if (state.trackers.length) {
+      closeSplash();
+      render();
+    } else {
+      openSplash("create");
+    }
+  </script>
+</body>
+</html>
