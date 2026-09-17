@@ -4101,23 +4101,26 @@ body.high-contrast .avatar-lightbox-img {
       row.appendChild(drop);
       row.style.transform = "";
       row.addEventListener("click", function (e) {
-        row.classList.add("just-clicked");
-        row.classList.remove("is-open");
-        try { row.blur(); } catch (err) {}
-        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+        const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (fine) {
+          row.classList.add("just-clicked");
+          try { row.blur(); } catch (err) {}
+          return;
+        }
+        if (row.classList.contains("is-open")) {
+          row.classList.remove("is-open");
+          return;
+        }
         e.preventDefault();
-        const open = !row.classList.contains("was-open");
         document.querySelectorAll(".spec-row.is-open").forEach(function (r) {
           r.classList.remove("is-open");
         });
-        if (open) {
-          row.classList.remove("just-clicked");
-          row.classList.add("is-open");
-        }
+        row.classList.add("is-open");
       });
       row.addEventListener("pointerleave", function () {
-        row.classList.remove("just-clicked");
-        row.classList.remove("is-open");
+        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+          row.classList.remove("just-clicked");
+        }
       });
     });
     document.addEventListener("click", function (e) {
