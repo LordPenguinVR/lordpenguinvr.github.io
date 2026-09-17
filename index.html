@@ -2308,6 +2308,12 @@ body.high-contrast .avatar-lightbox-img {
 </head>
 
 <body class="splash-active">
+  <script>
+    // Apply high contrast immediately on small screens to avoid a dim first paint.
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      document.body.classList.add("high-contrast");
+    }
+  </script>
 
   <!-- TERMINAL LOGIN SPLASH -->
   <div class="splash" id="splash" role="dialog" aria-label="Terminal login sequence">
@@ -2731,6 +2737,10 @@ body.high-contrast .avatar-lightbox-img {
           btnContrast.setAttribute("aria-pressed", String(isHigh));
         }
       }
+
+      // Default to high contrast on mobile — CRT green is harder to read
+      // on small/bright screens. Desktop stays on the normal look.
+      setContrastState(isMobile());
 
       // Contrast toggle
       if (btnContrast) {
