@@ -1852,6 +1852,39 @@ body.high-contrast .spec-row {
   border-radius: 6px;
 }
 
+
+.group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.group-head .group-title { margin: 0; }
+.photos-toggle {
+  display: none;
+  font-size: 0.68em !important;
+  padding: 4px 8px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  letter-spacing: 0.4px;
+}
+@media (max-width: 1179px) {
+  .photos-toggle { display: inline-flex; }
+  .photos-on .spec-drop {
+    position: static;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    pointer-events: none;
+    margin: 8px 0 6px;
+  }
+  .photos-on .spec-row.just-clicked .spec-drop {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+}
 .spec-drop-name {
   font-size: 0.78em;
   letter-spacing: 0.3px;
@@ -4100,29 +4133,39 @@ body.high-contrast .avatar-lightbox-img {
       }
       row.appendChild(drop);
       row.style.transform = "";
-      row.addEventListener("click", function (e) {
-        const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (fine) {
-          row.classList.add("just-clicked");
-          try { row.blur(); } catch (err) {}
-          return;
-        }
-        if (row.classList.contains("is-open")) {
-          row.classList.remove("is-open");
-          return;
-        }
-        e.preventDefault();
-        document.querySelectorAll(".spec-row.is-open").forEach(function (r) {
-          r.classList.remove("is-open");
-        });
-        row.classList.add("is-open");
+      row.addEventListener("click", function () {
+        row.classList.add("just-clicked");
+        try { row.blur(); } catch (err) {}
       });
       row.addEventListener("pointerleave", function () {
-        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-          row.classList.remove("just-clicked");
-        }
+        row.classList.remove("just-clicked");
       });
     });
+    function addPhotoToggle(section) {
+      if (!section) return;
+      const title = section.querySelector(".group-title");
+      if (!title || title.closest(".group-head")) return;
+      const head = document.createElement("div");
+      head.className = "group-head";
+      title.parentNode.insertBefore(head, title);
+      head.appendChild(title);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "photos-toggle fx-btn";
+      btn.textContent = "PHOTOS";
+      btn.setAttribute("aria-pressed", "false");
+      head.appendChild(btn);
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const on = section.classList.toggle("photos-on");
+        btn.textContent = on ? "HIDE" : "PHOTOS";
+        btn.setAttribute("aria-pressed", String(on));
+      });
+    }
+    addPhotoToggle(document.getElementById("peripherals"));
+    addPhotoToggle(document.getElementById("specs"));
+
     document.addEventListener("click", function (e) {
       if (e.target.closest(".spec-row")) return;
       document.querySelectorAll(".spec-row.is-open").forEach(function (r) {
