@@ -1863,26 +1863,36 @@ body.high-contrast .spec-row {
 .group-head .group-title { margin: 0; }
 .photos-toggle {
   display: none;
-  font-size: 0.68em !important;
-  padding: 4px 8px !important;
+  font-size: 0.75em !important;
+  padding: 1px 7px !important;
   min-width: 0 !important;
   width: auto !important;
+  min-height: 0 !important;
+  height: 1.6em !important;
+  line-height: 1.2 !important;
   letter-spacing: 0.4px;
+  align-items: center;
 }
 @media (max-width: 1179px) {
-  .photos-toggle { display: inline-flex; }
-  .photos-on .spec-drop {
-    position: static;
+  .photos-toggle { display: inline-flex !important; }
+  .photos-on .spec-row {
+    display: grid;
+    grid-template-columns: 14px max-content minmax(0, 1fr);
+  }
+  .photos-on .spec-drop,
+  .photos-on .spec-row.just-clicked .spec-drop {
+    position: static !important;
+    grid-column: 1 / -1;
+    display: flex !important;
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
     pointer-events: none;
     margin: 8px 0 6px;
-  }
-  .photos-on .spec-row.just-clicked .spec-drop {
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: none !important;
+    width: 100%;
+    left: auto;
+    right: auto;
+    top: auto;
   }
 }
 .spec-drop-name {
